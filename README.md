@@ -1,37 +1,11 @@
 # Cómo funcionan las redes neuronales
 
-Charla hecha en manim
+Charla hecha en manim sobre cómo funcionan las redes neuronales.
 
 ## Requisitos
 
 - Python 
 - [uv](https://docs.astral.sh/uv/) para gestionar el entorno y las dependencias
-- [VS Code](https://code.visualstudio.com/) con la extensión de Python, para abrir los cuadernos
-
-## Estructura
-
-Dos proyectos independientes, cada uno con su `pyproject.toml` y su `.venv`:
-
-```
-presentacion/   la charla animada (manim-slides)
-  main.py           orquestador: llama a cada slide_* en orden
-  estilo.py         paleta, tipografía y rutas
-  componentes.py    fábricas de mobjects reutilizables
-  animaciones.py    helpers de animación
-  fuentes.py        registro de las fuentes de marca
-  diapositivas/     una diapositiva por archivo
-  assets/           imágenes, logos y .ttf
-practica/       práctica que acompaña a la charla 
-  xx_notebook.ipynb          notebooks con las explicaciones prácticas
-  utils.py                   funciones auxiliares para la parte práctica
-  datos/                     lo que generan los cuadernos (pesos guardados)
-  assets/                    los banners de los cuadernos
-```
-
-Están separados a propósito: la presentación contiene Manim, y la
-práctica contiene PyTorch. 
-
-Los comandos se corren **desde dentro de cada carpeta**, no desde la raíz.
 
 ## Uso
 
@@ -41,7 +15,6 @@ cd presentacion
 uv sync                                                        # instalar su entorno
 
 uv run python -m manim_slides render main.py presentation      # renderizar
-uv run python -m manim_slides render -ql main.py presentation  # ... en baja calidad
 uv run python -m manim_slides present presentation             # presentar
 
 # --- La parte práctica ---
