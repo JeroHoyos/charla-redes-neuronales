@@ -508,7 +508,7 @@ def construir(scene):
         width=LADO_TARJETA, height=LADO_TARJETA, corner_radius=0.2,
         stroke_color=PRIMARIO, stroke_width=3,
     ).set_fill(BLANCO, opacity=1.0).move_to([X_QR, Y_RED, 0])
-    codigo = imagen("qr_links.png")
+    codigo = imagen("qr_formulario.png")
     codigo.scale_to_fit_width(LADO_TARJETA - MARGEN_QR * 2)
     codigo.move_to(papel_qr.get_center())
     tarjeta = Group(papel_qr, codigo)
@@ -516,8 +516,8 @@ def construir(scene):
     junta, convergencias, salida, riel = _desemboque(capas[-1])
 
     pie_qr = VGroup(
-        texto("escanea el código", 15, color=CLARO),
-        texto("diapositivas y recursos", 14, color=SECUNDARIO),
+        texto("Escanea el código", 15, color=CLARO),
+        texto("Asistencia y recursos", 14, color=SECUNDARIO),
     ).arrange(DOWN, buff=0.12).move_to([X_QR, Y_PIE_QR, 0])
 
     # --- La tira de repaso y la firma ---------------------------------------
@@ -530,14 +530,8 @@ def construir(scene):
                   color=SECUNDARIO).move_to([0, Y_FIRMA, 0])
 
     # ---------------------- Animación --------------------------------------
-    # La malla decorativa del fondo se va con la primera animación: es la única
-    # diapositiva que trae su propia red, y las dos juntas se pelean —las
-    # aristas largas del fondo cruzan la tira de repaso y ensucian todo.
-    entrada = [FadeIn(gracias[0], shift=UP * 0.18)]
-    if getattr(scene, "_fondo", None) is not None:
-        entrada.append(FadeOut(scene._fondo))
-        scene._fondo = None
-    scene.play(*entrada, run_time=0.5)
+    # La malla decorativa del fondo se queda, como en el resto de la charla.
+    scene.play(FadeIn(gracias[0], shift=UP * 0.18), run_time=0.5)
     scene.play(FadeIn(gracias[1], shift=UP * 0.18), run_time=0.5)
 
     # La red se arma capa a capa, de la entrada a la salida: es el mismo

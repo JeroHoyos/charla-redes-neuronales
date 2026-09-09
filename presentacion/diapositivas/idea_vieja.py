@@ -2,8 +2,7 @@
 
 Arranca donde terminó la diapositiva anterior (hoy: ChatGPT, Claude) y rebobina
 hacia atrás: la línea temporal se dibuja de derecha a izquierda hasta aterrizar
-en 1957, con Rosenblatt y el perceptrón. Cierra con el puente a la neurona
-biológica, que es lo que el perceptrón intentaba imitar.
+en 1957, con Rosenblatt y el perceptrón.
 
 El hito de 1986 se planta aquí sin explicar a propósito: lo recoge la
 diapositiva de backpropagation.
@@ -33,7 +32,6 @@ from estilo import AMBAR, CLARO, FONT_TITULO, PRIMARIO, SECUNDARIO
 
 Y_LINEA = 1.35
 Y_TARJETA = -1.0
-Y_PUENTE = -3.05
 X_EXTREMO = 5.9       # medio ancho de la línea temporal
 SEPARACION = 2.5      # distancia entre hitos consecutivos
 ANCHO_MAX_HITO = 2.1  # tope para que las etiquetas vecinas no se toquen
@@ -107,10 +105,6 @@ def construir(scene):
     )
 
     tarjeta = _tarjeta_rosenblatt()
-    puente = VGroup(
-        texto("Un algoritmo que aprenda", 26, color=CLARO),
-        texto("como una neurona", 26, color=PRIMARIO, weight=BOLD),
-    ).arrange(RIGHT, buff=0.22).move_to([0, Y_PUENTE, 0])
 
     # ---------------------- Animación --------------------------------------
     scene.play(FadeIn(encabezado, shift=DOWN * 0.2), run_time=0.6)
@@ -140,10 +134,6 @@ def construir(scene):
     scene.play(
         GrowFromPoint(tarjeta, perceptron[0].get_center()), run_time=0.9,
     )
-    scene.next_slide()
-
-    # Puente hacia la neurona biológica (diapositiva 4).
-    scene.play(FadeIn(puente, shift=UP * 0.15), run_time=0.7)
     scene.wait(0.4)
 
     scene.next_slide()

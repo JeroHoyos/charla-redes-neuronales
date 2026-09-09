@@ -120,20 +120,20 @@ def construir(scene):
         GrowFromCenter(VGroup(salida, etiqueta_salida)),
         run_time=0.7,
     )
-    scene.next_slide()
 
     # Se abre el hueco entre el sumatorio y la salida.
-    scene.play(FadeOut(flecha_directa), run_time=0.4)
-    scene.play(Create(flecha_a), Create(flecha_b), run_time=0.7)
-    scene.play(Create(hueco), run_time=0.7)
-    scene.play(FadeIn(interrogacion, scale=0.4), run_time=0.5)
+    scene.play(
+        FadeOut(flecha_directa), Create(flecha_a), Create(flecha_b),
+        run_time=0.7,
+    )
+    scene.play(
+        Create(hueco), FadeIn(interrogacion, scale=0.4), run_time=0.7,
+    )
     scene.play(Indicate(VGroup(hueco, interrogacion), color=PRIMARIO,
                         scale_factor=1.12), run_time=0.7)
     scene.next_slide()
 
     scene.play(FadeIn(diagnostico, shift=UP * 0.12), run_time=0.7)
-    scene.next_slide()
-
     scene.play(FadeIn(vuelta, shift=UP * 0.15), run_time=0.7)
     scene.wait(0.4)
 
