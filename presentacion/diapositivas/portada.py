@@ -170,10 +170,10 @@ def construir(scene):
 
     antetitulo = texto("SEMILLERO APERTURE", 15, color=PRIMARIO)
     titulo = VGroup(
-        texto("COMO", 26, color=CLARO, font=FONT_TITULO),  # Press Start 2P: sin acento
+        texto("¿COMO", 26, color=CLARO, font=FONT_TITULO),  # Press Start 2P: sin acento
         texto("FUNCIONAN", 26, color=CLARO, font=FONT_TITULO),
         texto("LAS REDES", 26, color=CLARO, font=FONT_TITULO),
-        texto("NEURONALES", 26, color=PRIMARIO, font=FONT_TITULO),
+        texto("NEURONALES?", 26, color=PRIMARIO, font=FONT_TITULO),
     ).arrange(DOWN, buff=0.26, aligned_edge=LEFT)
     max_ancho = 5.2
     if titulo.width > max_ancho:
