@@ -1,12 +1,3 @@
-"""Diapositiva 19 — Medir el error en regresión.
-
-Si queremos mejorar, primero hay que poder medir cuánto nos equivocamos. Los
-residuos de la 7 vuelven, pero ahora se elevan literalmente al cuadrado: cada
-error se convierte en un cuadrado de verdad, y el área total es la pérdida.
-
-Así se ve por qué el error cuadrático castiga tanto los fallos grandes.
-"""
-
 import numpy as np
 from manim import (
     DOWN,
@@ -53,7 +44,7 @@ def construir(scene):
     rot_recta.next_to(ejes.c2p(3.8, PENDIENTE * 3.8 + ORDENADA), UP, buff=0.12)
 
     reales, residuos, cuadrados = VGroup(), VGroup(), VGroup()
-    unidad = ejes.c2p(1, 0)[0] - ejes.c2p(0, 0)[0]  # una unidad de dato en pantalla
+    unidad = ejes.c2p(1, 0)[0] - ejes.c2p(0, 0)[0]
     for x, desvio in zip(XS, DESVIOS):
         y_pred = PENDIENTE * x + ORDENADA
         y_real = y_pred + desvio
@@ -62,7 +53,6 @@ def construir(scene):
             ejes.c2p(x, y_real), ejes.c2p(x, y_pred),
             color=AMBAR, stroke_width=2.5, dash_length=0.08,
         ))
-        # El cuadrado del error, con el lado igual al residuo.
         lado = abs(desvio) * (ejes.c2p(0, 1)[1] - ejes.c2p(0, 0)[1])
         cuadrado = Square(
             side_length=lado, stroke_color=AMBAR, stroke_width=2,
@@ -89,7 +79,6 @@ def construir(scene):
         "La pérdida es un único número: el área total", 21, color=CLARO,
     ).move_to([0, -3.2, 0])
 
-    # ---------------------- Animación --------------------------------------
     scene.play(FadeIn(encabezado, shift=DOWN * 0.2), run_time=0.6)
     scene.play(Create(ejes), run_time=0.8)
     scene.play(
@@ -99,14 +88,12 @@ def construir(scene):
     scene.play(Create(recta), FadeIn(rot_recta), run_time=0.8)
     scene.next_slide()
 
-    # El error de cada punto.
     scene.play(
         LaggedStart(*[Create(r) for r in residuos], lag_ratio=0.12),
         run_time=1.0,
     )
     scene.next_slide()
 
-    # Cada error, al cuadrado.
     scene.play(
         LaggedStart(*[FadeIn(c, scale=0.4) for c in cuadrados], lag_ratio=0.15),
         run_time=1.2,

@@ -1,13 +1,3 @@
-"""Diapositiva 20 — Medir el error en clasificación.
-
-Acertar con 0.9 de confianza y acertar con 0.51 no es lo mismo. La entropía
-cruzada mide justo eso: el coste es −log(p), donde p es la probabilidad que el
-modelo le dio a la respuesta correcta.
-
-La curva se dispara cuando p se acerca a 0: equivocarse con mucha seguridad sale
-carísimo.
-"""
-
 import numpy as np
 from manim import (
     DOWN,
@@ -86,14 +76,12 @@ def construir(scene):
         "Equivocarse con mucha seguridad sale carísimo", 21, color=CLARO,
     ).move_to([0, -3.2, 0])
 
-    # ---------------------- Animación --------------------------------------
     scene.play(FadeIn(encabezado, shift=DOWN * 0.2), run_time=0.6)
     scene.play(Create(ejes), FadeIn(rot_x), FadeIn(rot_y), run_time=0.9)
     scene.play(Create(curva), run_time=1.2)
     scene.play(Write(formula), run_time=0.8)
     scene.next_slide()
 
-    # Los tres casos, de mejor a peor.
     for marca, fila in zip(marcas, lista):
         scene.play(FadeIn(marca), FadeIn(fila, shift=RIGHT * 0.15),
                    run_time=0.7)

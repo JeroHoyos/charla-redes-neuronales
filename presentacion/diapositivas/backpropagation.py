@@ -1,31 +1,3 @@
-"""Diapositiva 23 — De la regla de la cadena a backpropagation.
-
-Une en un solo hilo lo que antes eran tres diapositivas sueltas (la regla de la
-cadena, derivar a mano y backpropagation), porque las tres son un solo
-razonamiento y contadas por separado se rompía justo donde tiene gracia:
-
-1. vuelve la compuesta de la diapositiva del valle y se **abre**: la red no es
-   una función, es una cadena de funciones, con la ``w`` colgando de la
-   primera,
-2. la regla de la cadena sobre ese dibujo, con cada factor numerado —y los
-   números van de la salida hacia atrás, que es ya la mitad de backprop,
-3. el intento en una red de verdad: una sola ``w`` llega a la salida por ocho
-   caminos,
-4. y la solución, con su propio título: pasada hacia delante con el error alto,
-   zoom a una neurona para ver que cada peso **solo necesita lo que le llega de
-   la derecha**, vuelta atrás capa a capa restando el gradiente, y otra pasada
-   hacia delante con el error más bajo.
-
-Los pesos se dibujan como **perillas** con aguja, del ámbar de siempre: una
-perilla se gira, y girarla es literalmente lo que hace el paso de gradiente.
-El termómetro del error es el mismo de las dos diapositivas anteriores, así que
-"alto" y "bajo" se leen sin explicar nada.
-
-Colores por papel: la red en azul acero, los pesos en ámbar, el error en rojo,
-la ida en verde y la vuelta —la culpa que baja— en morado. Cuando una capa
-termina de corregirse, sus aristas se quedan en ámbar: pesos nuevos.
-"""
-
 import numpy as np
 from manim import (
     DOWN,
@@ -57,36 +29,29 @@ from componentes import texto
 from componentes import titulo as hacer_titulo
 from estilo import AMBAR, CLARO, FONDO, MORADO, PRIMARIO, ROJO, SECUNDARIO, VERDE
 
-# --- Acto 1: la cadena de funciones ----------------------------------------
 Y_CADENA = 0.35
 ANCHO_CAJA, ALTO_CAJA = 1.15, 0.95
 LARGO_FLECHA = 0.62
 
-# --- Actos 3 a 7: la red ---------------------------------------------------
 CAPAS_RED = (3, 4, 4, 2)
 X_RED = -2.0
-Y_RED = -0.65           # el bloque red + termómetro, centrado bajo el título
+Y_RED = -0.65
 SEP_CAPA = 2.35
 SEP_NODO = 0.95
 RADIO_NODO = 0.28
-# Cuando el termómetro no está en pantalla, la red se centra sola y además
-# crece: el tubo se lleva el tercio derecho, y sin él sobra sitio de sobra.
 CENTRADO = -X_RED
 AMPLIACION = 1.25
-ZOOM = 3.4              # cuánto se empuja la cámara al entrar en una neurona
-Y_ROTULO_GRADIENTE = 1.55   # la fila de ``-∇w``, justo encima de la red
-# La arista que se sigue: del nodo 0 de la entrada al nodo 1 de la capa 1.
+ZOOM = 3.4
+Y_ROTULO_GRADIENTE = 1.55
 ARISTA_ELEGIDA = 1
 
-# --- El termómetro, el mismo de las dos diapositivas anteriores ------------
 X_TERMO = 4.6
 ANCHO_TERMO = 0.8
 ALTO_TERMO = 3.2
 Y_PIE_TERMO = -2.3
-LLENO = 0.86              # con los pesos sin tocar
-TRAS_EL_PASO = 0.34       # después de restar el gradiente
+LLENO = 0.86
+TRAS_EL_PASO = 0.34
 
-# --- Acto 5: el zoom a una neurona -----------------------------------------
 Y_NEURONA = 0.2
 PASO_ENTRADA = 1.15
 X_ENTRADA = -4.0
@@ -95,23 +60,12 @@ X_MULT = -1.8
 X_SUMA = 0.0
 X_RELU = 1.8
 X_PERDIDA = 3.8
-# Las tres ramas, a la misma altura para el dibujo y para las paradas de la
-# ficha que baja: si cada uno las calcula por su cuenta acaban descuadradas.
 ALTURAS_NEURONA = tuple(
     Y_NEURONA + PASO_ENTRADA - i * PASO_ENTRADA for i in range(3)
 )
 
 
 def _perilla(nombre=None, angulo=np.pi / 2, radio=0.22, lado=LEFT):
-    """Un peso, dibujado como una perilla con aguja.
-
-    Se dibuja así y no como un número porque lo que va a pasar con él es
-    exactamente lo que se le hace a una perilla: girarla un poco. La aguja
-    arranca **recta**, a las doce: así el giro de la corrección se ve como
-    giro y no como un desorden que ya estaba. Devuelve ``VGroup(cuerpo,
-    aguja)`` o, si lleva nombre, ese grupo más su etiqueta, de modo que
-    ``perilla[0][1]`` es siempre la aguja.
-    """
     cuerpo = Circle(radius=radio, color=AMBAR, stroke_width=3)
     cuerpo.set_fill(FONDO, opacity=1.0)
     aguja = Line(
@@ -127,12 +81,6 @@ def _perilla(nombre=None, angulo=np.pi / 2, radio=0.22, lado=LEFT):
 
 
 def _colgar(perilla, de, buff):
-    """Cuelga una perilla debajo de ``de``, con el cable a plomo.
-
-    Alinea el **mando** con el centro de ``de``, no el grupo entero: la
-    etiqueta va a un lado y descentra el conjunto, así que un ``next_to`` a
-    secas deja el cable torcido.
-    """
     perilla.next_to(de, DOWN, buff=buff)
     return perilla.shift(
         RIGHT * (de.get_center()[0] - perilla[0].get_center()[0]),
@@ -140,7 +88,6 @@ def _colgar(perilla, de, buff):
 
 
 def _girar(perilla, angulo=-0.7):
-    """La corrección de un peso: la aguja se mueve un poco."""
     return Rotate(perilla[0][1], angle=angulo,
                   about_point=perilla[0][0].get_center())
 
@@ -162,12 +109,6 @@ def _flecha_corta(color=SECUNDARIO):
 
 
 def _cadena_funciones():
-    """``x → f1 → f2 → f3 → ℓ → L``, con la ``w`` colgando de la primera.
-
-    Se monta con ``arrange`` y no a mano: son once piezas en fila y basta con
-    que quepan; los rótulos ``h`` y la perilla se cuelgan después de las piezas
-    ya colocadas.
-    """
     entrada = MathTex("x", color=CLARO).scale(0.95)
     efes = [_caja(f"f_{i}", PRIMARIO) for i in (1, 2, 3)]
     perdida = _caja(r"\ell", ROJO)
@@ -179,7 +120,6 @@ def _cadena_funciones():
         efes[2], flechas[3], perdida, flechas[4], salida,
     ).arrange(RIGHT, buff=0.24).move_to([0, Y_CADENA, 0])
 
-    # h1, h2 y h3 son lo que sale de cada f: van sobre las flechas de en medio.
     hs = VGroup(*[
         MathTex(f"h_{i}", color=SECUNDARIO).scale(0.65).next_to(
             flechas[i], UP, buff=0.12,
@@ -197,7 +137,6 @@ def _cadena_funciones():
 
 
 def _numerito(n, debajo_de):
-    """El orden en que se calculan los factores, en un círculo pequeño."""
     circulo = Circle(radius=0.16, color=SECUNDARIO, stroke_width=1.8)
     circulo.set_fill(FONDO, opacity=1.0)
     numero = texto(str(n), 13, color=SECUNDARIO).move_to(circulo.get_center())
@@ -205,22 +144,10 @@ def _numerito(n, debajo_de):
 
 
 def _x_capa(i):
-    """Abscisa de la capa ``i`` en la posición **final** de la red.
-
-    Se calcula de las constantes y no del mobject a propósito: durante el
-    acto 3 la red anda centrada y ampliada, así que preguntarle dónde está
-    devuelve el sitio de entonces, no el de después.
-    """
     return X_RED + (i - (len(CAPAS_RED) - 1) / 2) * SEP_CAPA
 
 
 def _red():
-    """La red de verdad: cuatro capas, nodos apagados y aristas finas.
-
-    Las aristas de cada grupo se guardan en el orden ``origen`` mayor, así que
-    las que salen del nodo ``k`` de la izquierda son un tramo contiguo: eso es
-    lo que permite encender el abanico de un solo peso sin buscar nada.
-    """
     capas = []
     for i, n in enumerate(CAPAS_RED):
         x = _x_capa(i)
@@ -266,11 +193,6 @@ def _liquido(fraccion):
 
 
 def _restaurar_red(capas, conexiones):
-    """Deja la red como recién dibujada.
-
-    Hace falta porque el zoom la agranda y la desvanece a mano —``FadeOut`` no
-    sabe crecer desde un punto concreto— y luego hay que devolverla entera.
-    """
     for capa in capas:
         for nodo in capa:
             nodo.set_stroke(color=SECUNDARIO, width=2.5, opacity=1.0)
@@ -280,12 +202,6 @@ def _restaurar_red(capas, conexiones):
 
 
 def _ficha(expresion):
-    """El valor que baja, en una etiqueta que tapa el cable por el que viaja.
-
-    Es **una sola cosa** que se mueve y se reescribe, no un rótulo distinto en
-    cada sitio: de eso va el acto. Va rellena del fondo para que al pasar por
-    encima de un cable no se lea encima de él.
-    """
     formula = MathTex(expresion, color=MORADO).scale(0.55)
     caja = RoundedRectangle(
         width=formula.width + 0.26, height=formula.height + 0.2,
@@ -295,11 +211,6 @@ def _ficha(expresion):
 
 
 def _llevar(scene, fichas, destinos, cables=(), run_time=0.75):
-    """Las fichas van a su siguiente parada, y el cable que usan se enciende.
-
-    El cable se queda morado detrás, así que al final el camino recorrido
-    está dibujado y se ve qué parte ya está calculada.
-    """
     scene.play(
         *[f.animate.move_to(d) for f, d in zip(fichas, destinos)],
         *[c.animate.set_color(MORADO) for c in cables],
@@ -308,31 +219,16 @@ def _llevar(scene, fichas, destinos, cables=(), run_time=0.75):
 
 
 def _convertir(ficha, expresion):
-    """La ficha recoge la derivada local del sitio y pasa a ser la siguiente."""
     return Transform(ficha, _ficha(expresion).move_to(ficha.get_center()))
 
 
 def _pulso(nodo, color, ancho=4.0):
-    """Un nodo acusando el golpe: **solo el trazo**, y vuelto a su sitio.
-
-    Con ``Indicate`` no vale: tiñe el mobject entero, y estos nodos van
-    rellenos del color de fondo, así que por un instante se convierten en
-    bolas macizas. ``there_and_back`` deja el nodo exactamente como estaba.
-    """
     return nodo.animate(rate_func=there_and_back).set_stroke(
         color=color, width=ancho,
     )
 
 
 def _pasada(scene, capas, conexiones, color, run_time=0.45):
-    """La señal recorriendo la red hacia delante, capa a capa.
-
-    Tres cosas a la vez en cada tramo: los puntos que viajan, el **cable que
-    se enciende al paso y se apaga detrás** —de ahí el ``there_and_back``, que
-    además devuelve el cable a su color de antes sin tener que recordarlo— y
-    los nodos de llegada, que acusan el golpe. Sin esto último la señal
-    parecía atravesar la red sin tocarla.
-    """
     scene.play(
         LaggedStart(*[_pulso(n, color) for n in capas[0]], lag_ratio=0.08),
         run_time=0.5,
@@ -357,12 +253,6 @@ def _pasada(scene, capas, conexiones, color, run_time=0.45):
 
 
 def _neurona():
-    """Una neurona por dentro: entradas, perillas, ×, +, ReLU y la pérdida.
-
-    Es el mismo cálculo de la diapositiva del perceptrón, pero desarmado en
-    piezas, porque lo que hay que ver aquí es que entre cada perilla y el error
-    solo hay tres pasos, no toda la red.
-    """
     ys = ALTURAS_NEURONA
 
     entradas = VGroup(*[
@@ -395,8 +285,6 @@ def _neurona():
     perdida = _caja("L", ROJO, ancho=0.95, escala=0.85)
     perdida.move_to([X_PERDIDA, Y_NEURONA, 0])
 
-    # Los cables van por tramos con nombre, no en un montón: la vuelta los
-    # recorre uno a uno y en orden, y cada tramo es un factor de la cadena.
     cables_entrada = VGroup(*[
         Line([X_ENTRADA + 0.22, y, 0], [X_MULT - 0.24, y, 0],
              color=SECUNDARIO, stroke_width=2).set_stroke(opacity=0.7)
@@ -422,8 +310,6 @@ def _neurona():
                      stroke_width=3, buff=0.12, tip_length=0.18)
     VGroup(flecha_z, flecha_a).set_stroke(opacity=0.85)
 
-    # Los valores intermedios, nombrados: sin esto la cadena de abajo habla de
-    # ``p``, ``z`` y ``a`` sin que se sepa dónde están.
     etiquetas = VGroup(
         *[MathTex(f"p_{i + 1}", color=SECUNDARIO).scale(0.55).next_to(
             multiplicadores[i], UP, buff=0.12,
@@ -434,8 +320,6 @@ def _neurona():
             flecha_a, UP, buff=0.1),
     )
 
-    # El ``+`` sale aparte del resto: es la pieza en la que se convierte el
-    # nodo de la red al hacer zoom, así que la animación necesita agarrarla.
     resto = VGroup(
         cables_entrada, cables_peso, cables_suma, cable_sesgo,
         flecha_z, flecha_a, entradas, multiplicadores, relu, perdida,
@@ -449,7 +333,6 @@ def construir(scene):
     encabezado = hacer_titulo("Una función dentro de otra")
     encabezado_bp = hacer_titulo("Backpropagation")
 
-    # --- Acto 1: la compuesta, abierta -------------------------------------
     compuesta = MathTex(
         "L", "(", "w", ")", "=", "L", r"\big(", "f(x;", "w", ")", ",", "y",
         r"\big)",
@@ -465,7 +348,6 @@ def construir(scene):
 
     fila, hs, mando, efes, caja_perdida = _cadena_funciones()
 
-    # --- Acto 2: la regla de la cadena -------------------------------------
     cadena = MathTex(
         r"\frac{\partial L}{\partial w}", "=",
         r"\frac{\partial L}{\partial h_3}", r"\cdot",
@@ -482,18 +364,11 @@ def construir(scene):
         _numerito(n, cadena[2 * n]) for n in (1, 2, 3, 4)
     ])
 
-    # --- Actos 3 a 7: la red ------------------------------------------------
     capas, conexiones = _red()
     red = VGroup(*conexiones, *capas)
-    # El acto 3 no lleva termómetro, así que para él la red se centra y se
-    # agranda —y todo lo que se cuelga de ella se calcula ya en ese tamaño—;
-    # en el acto 4 deshace las dos cosas y vuelve a su sitio, con el tubo
-    # ocupando la derecha.
     centro_red = np.array([0.0, Y_RED, 0.0])
     red.shift(RIGHT * CENTRADO).scale(AMPLIACION, about_point=centro_red)
 
-    # El abanico de un solo peso: la arista elegida y todo lo que cuelga de
-    # ella. Con 4 y 2 nodos por delante son ocho caminos hasta la salida.
     elegida = conexiones[0][ARISTA_ELEGIDA]
     rot_elegida = MathTex("w", color=AMBAR).scale(0.7)
     rot_elegida.next_to(elegida.get_center(), UP + LEFT, buff=0.08)
@@ -503,7 +378,6 @@ def construir(scene):
                              (destino + 1) * len(capas[2])]),
         conexiones[2],
     ]
-    # --- Actos 4 a 7: backpropagation --------------------------------------
     tubo = _tubo()
     rotulo_termo = texto("error", 19, color=ROJO).next_to(tubo, UP, buff=0.22)
     nivel_alto = _liquido(LLENO)
@@ -512,10 +386,6 @@ def construir(scene):
     flecha_a, flecha_z, cables_suma, cables_peso, cable_sesgo = tramos
     piezas_neurona = VGroup(nucleo, resto_neurona)
 
-    # Un ``-∇w`` por capa, encima del grupo de conexiones que le toca. Solo se
-    # ve mientras esa capa se corrige: el de al lado no ha llegado todavía y
-    # el de atrás ya se aplicó, y con los tres a la vez el ojo no sabía cuál
-    # mirar.
     gradientes = VGroup(*[
         MathTex(r"-\nabla w", color=MORADO).scale(0.75).move_to([
             (_x_capa(i) + _x_capa(i + 1)) / 2, Y_ROTULO_GRADIENTE, 0,
@@ -523,9 +393,6 @@ def construir(scene):
         for i in range(len(CAPAS_RED) - 1)
     ])
 
-    # La moraleja del acto, en una línea: el trozo morado es el que ya venía
-    # calculado y sirve igual para los tres pesos; lo único propio de cada uno
-    # es su ``x``. Escrito con los mismos colores que la ficha y las entradas.
     reuso = MathTex(
         r"\frac{\partial L}{\partial w_i}", "=",
         r"\frac{\partial L}{\partial z}", r"\cdot", "x_i",
@@ -534,7 +401,6 @@ def construir(scene):
     reuso[2].set_color(MORADO)
     reuso[4].set_color(CLARO)
 
-    # Las paradas de la ficha, todas sobre el camino que recorre.
     parada_salida = np.array([(X_RELU + X_PERDIDA) / 2, Y_NEURONA, 0])
     parada_activa = np.array([(X_SUMA + X_RELU) / 2, Y_NEURONA, 0])
     parada_suma = np.array([X_SUMA - 0.62, Y_NEURONA, 0])
@@ -542,13 +408,8 @@ def construir(scene):
     etiqueta_relu = MathTex(
         r"\cdot\ \frac{\partial a}{\partial z}", color=PRIMARIO,
     ).scale(0.6).move_to([X_RELU, Y_NEURONA + 0.95, 0])
-    # Se hace zoom a la neurona que ya venía marcada del acto 3: la que recibe
-    # la ``w`` que seguimos. Y es de la primera capa oculta, así que tiene
-    # exactamente tres entradas, las mismas que el dibujo de dentro.
     nodo_zoom = capas[1][ARISTA_ELEGIDA % len(capas[1])]
 
-    # ---------------------- Animación --------------------------------------
-    # 1. La compuesta de la diapositiva anterior, abierta en cadena.
     scene.play(FadeIn(encabezado, shift=DOWN * 0.2), run_time=0.6)
     scene.play(FadeIn(compuesta), run_time=0.8)
     scene.play(
@@ -559,8 +420,6 @@ def construir(scene):
     scene.play(FadeIn(hs), Create(mando), run_time=0.8)
     scene.next_slide()
 
-    # 2. La regla de la cadena: un eslabón por salto del dibujo. Los números
-    # dicen en qué orden se calculan, que es de la salida hacia atrás.
     scene.play(Write(cadena), run_time=1.6)
     scene.play(
         LaggedStart(*[FadeIn(n, scale=0.5) for n in numeros], lag_ratio=0.2),
@@ -568,7 +427,6 @@ def construir(scene):
     )
     scene.next_slide()
 
-    # 3. En una red de verdad: una sola w toca todo lo que hay por delante.
     scene.play(
         FadeOut(compuesta), FadeOut(fila), FadeOut(hs), FadeOut(mando),
         FadeOut(cadena), FadeOut(numeros),
@@ -585,9 +443,6 @@ def construir(scene):
                                             width=2.2), run_time=0.6)
     scene.next_slide()
 
-    # 4. La solución tiene nombre. Una pasada hacia delante, y el error arriba.
-    # La red vuelve a su tamaño, a su sitio y a como estaba: sin abanico. Se
-    # desliza en vez de desaparecer y volver, porque sigue siendo la misma.
     red.generate_target()
     red.target.scale(1 / AMPLIACION, about_point=centro_red)
     red.target.shift(LEFT * CENTRADO)
@@ -600,22 +455,15 @@ def construir(scene):
     )
     scene.play(Create(tubo), FadeIn(rotulo_termo), run_time=0.9)
     _pasada(scene, capas, conexiones, VERDE, run_time=0.42)
-    # El termómetro se llena subiendo, no apareciendo de golpe: es el gesto de
-    # un termómetro y además encadena con la señal que acaba de llegar.
     nivel = _liquido(0.02)
     scene.add(nivel)
     scene.play(Transform(nivel, nivel_alto), run_time=0.8)
     scene.next_slide()
 
-    # 5. Zoom a una neurona: se marca cuál, y el nodo se abre por dentro.
     scene.play(nodo_zoom.animate.set_stroke(color=AMBAR, width=4.5),
                run_time=0.5)
     scene.play(nodo_zoom.animate(rate_func=there_and_back).scale(1.35),
                run_time=0.6)
-    # El zoom es un empuje de cámara fingido: la red entera crece **desde el
-    # nodo marcado** y se apaga a la vez, así que el ojo se mete por ahí. Un
-    # ``FadeOut`` con ``scale`` no sirve: crece desde el centro del grupo, no
-    # desde el punto que interesa.
     foco = nodo_zoom.get_center()
     scene.play(
         red.animate.scale(ZOOM, about_point=foco).set_opacity(0),
@@ -626,9 +474,6 @@ def construir(scene):
     scene.play(FadeIn(nucleo), FadeIn(resto_neurona), run_time=0.9)
     scene.next_slide()
 
-    # Una sola ficha baja desde el error, y en cada parada se multiplica por
-    # la derivada local del sitio: no se recalcula nada, se arrastra lo de
-    # antes. Empieza valiendo lo que le llega a la salida de la neurona.
     ficha = _ficha(r"\frac{\partial L}{\partial a}").move_to(parada_salida)
     scene.play(FadeIn(ficha, scale=0.6), run_time=0.6)
     _llevar(scene, [ficha], [parada_activa], [flecha_a])
@@ -638,8 +483,6 @@ def construir(scene):
     _llevar(scene, [ficha], [parada_suma], [flecha_z])
     scene.next_slide()
 
-    # En la suma no hay nada que multiplicar: la ficha se reparte tal cual.
-    # Esa copia es el ahorro entero de backpropagation, así que se ve.
     ramas = [ficha.copy() for _ in ALTURAS_NEURONA]
     rama_sesgo = ficha.copy()
     scene.add(*ramas, rama_sesgo)
@@ -651,7 +494,6 @@ def construir(scene):
     )
     scene.play(FadeIn(reuso, shift=UP * 0.12), run_time=0.7)
 
-    # Y en cada producto, lo único propio de cada peso: su entrada.
     scene.play(
         LaggedStart(*[
             _convertir(r, rf"\frac{{\partial L}}{{\partial w_{i + 1}}}")
@@ -662,7 +504,6 @@ def construir(scene):
     )
     scene.next_slide()
 
-    # La ficha se gasta girando su perilla: ahí se acaba el viaje.
     _llevar(
         scene, ramas + [rama_sesgo],
         [p[0].get_center() for p in perillas] + [sesgo[0].get_center()],
@@ -677,16 +518,12 @@ def construir(scene):
     )
     scene.next_slide()
 
-    # 6. Y lo mismo en toda la red: hacia atrás, capa a capa, restando.
     scene.play(FadeOut(piezas_neurona), FadeOut(reuso),
                FadeOut(etiqueta_relu), run_time=0.7)
     red.scale(1 / ZOOM, about_point=foco)
     _restaurar_red(capas, conexiones)
     scene.play(FadeIn(red), FadeIn(tubo), FadeIn(rotulo_termo),
                FadeIn(nivel), run_time=0.7)
-    # El ``-∇w`` de cada capa es de quita y pon: baja sobre la capa que se
-    # está corrigiendo y se hunde en ella cuando la culpa sigue camino, así
-    # que en pantalla hay siempre uno solo, el de la capa que toca.
     anterior = None
     for i in range(len(conexiones) - 1, -1, -1):
         grupo = conexiones[i]
@@ -703,7 +540,6 @@ def construir(scene):
             *[p.animate.set_opacity(0) for p in pulsos],
             LaggedStart(*[_pulso(n, MORADO) for n in capas[i]],
                         lag_ratio=0.07),
-            # Y se quedan en ámbar: son pesos nuevos.
             grupo.animate.set_stroke(color=AMBAR, opacity=0.8, width=1.8),
             FadeIn(gradientes[i], shift=DOWN * 0.3),
             run_time=0.6,
@@ -713,7 +549,6 @@ def construir(scene):
     scene.play(FadeOut(anterior, shift=DOWN * 0.3), run_time=0.45)
     scene.next_slide()
 
-    # 7. Otra vez hacia delante, con los pesos ya corregidos.
     _pasada(scene, capas, conexiones, VERDE, run_time=0.42)
     scene.play(Transform(nivel, _liquido(TRAS_EL_PASO)), run_time=1.0)
     scene.wait(0.4)

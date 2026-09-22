@@ -1,8 +1,3 @@
-"""Diapositiva de contenido tipo: título + viñetas + elemento visual.
-
-Úsala como referencia del patrón más común. Duplica y adapta.
-"""
-
 from manim import (
     BOLD,
     DOWN,
@@ -21,7 +16,6 @@ from estilo import PRIMARIO, SECUNDARIO
 
 
 def _icono():
-    """Fábrica local de un mobject propio de esta diapositiva."""
     aro = Line(LEFT * 0.4, RIGHT * 0.4, color=PRIMARIO, stroke_width=5)
     tallo = Line(UP * 0.4, DOWN * 0.4, color=SECUNDARIO, stroke_width=5)
     return VGroup(aro, tallo)

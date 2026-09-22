@@ -1,11 +1,3 @@
-"""Portada con la identidad de marca Aperture (Semillero de Data Science e IA).
-
-Fondo oscuro, título en Press Start 2P, cuerpo en JetBrains Mono, acento cian.
-A la derecha, una neurona artificial (perceptrón) animada y vectorial:
-nodos de entrada x_i con pesos w_i, bias +b, cuerpo dividido en sumatorio Σ
-y activación ReLU, salida ŷ y la fórmula ŷ = ReLU(Σ xᵢwᵢ + b).
-"""
-
 import numpy as np
 from manim import (
     DOWN,
@@ -41,11 +33,9 @@ def _m(tex, color, s=0.6):
 
 
 def _neurona_artificial(scene, centro=np.array([3.55, 0.3, 0.0])):
-    """Perceptrón: nodos, pesos, bias +b, cuerpo Σ|ReLU y salida ŷ."""
     cx, cy, _ = centro
     R = 1.0
 
-    # --- Cuerpo dividido: Σ a la izquierda, ReLU a la derecha --------------
     cuerpo = Circle(radius=R, color=PRIMARIO, stroke_width=4).move_to(centro)
     cuerpo.set_fill(RELLENO_NODO, opacity=1.0)
     divisor = Line(
@@ -54,7 +44,6 @@ def _neurona_artificial(scene, centro=np.array([3.55, 0.3, 0.0])):
     )
     sigma = _m(r"\Sigma", CLARO, 0.9).move_to([cx - 0.45, cy, 0])
 
-    # Mini gráfica de ReLU (eje tenue + curva en morado)
     o = np.array([cx + 0.42, cy - 0.22, 0])
     eje_x = Line(o + LEFT * 0.3, o + RIGHT * 0.42,
                  color=SECUNDARIO, stroke_width=1.4, stroke_opacity=0.6)
@@ -62,7 +51,6 @@ def _neurona_artificial(scene, centro=np.array([3.55, 0.3, 0.0])):
     relu.set_points_as_corners([o + LEFT * 0.28, o, o + np.array([0.38, 0.62, 0])])
     activacion = VGroup(eje_x, relu)
 
-    # --- Nodos de entrada x_i, pesos w_i y conexiones ----------------------
     ent_x = cx - 2.85
     nodo_r = 0.3
     filas = [(1.5, "x_1", "w_1"), (0.6, "x_2", "w_2"), (-1.3, "x_n", "w_n")]
@@ -86,7 +74,6 @@ def _neurona_artificial(scene, centro=np.array([3.55, 0.3, 0.0])):
         w_labels.append(wl)
     vdots = _m(r"\vdots", SECUNDARIO, 0.55).move_to([ent_x, -0.35, 0])
 
-    # --- Bias: nodo b (como las entradas) que se suma al cuerpo -------------
     b_nodo = Circle(radius=0.26, color=AMBAR, stroke_width=3)
     b_nodo.set_fill(RELLENO_NODO, opacity=1.0).move_to([cx, cy + R + 0.85, 0])
     b_lbl = _m("b", AMBAR, 0.55).move_to(b_nodo.get_center())
@@ -100,7 +87,6 @@ def _neurona_artificial(scene, centro=np.array([3.55, 0.3, 0.0])):
         b_linea.point_from_proportion(0.5) + RIGHT * 0.22
     )
 
-    # --- Salida ŷ -----------------------------------------------------------
     salida_x = cx + 2.3
     flecha = Arrow(
         centro + RIGHT * R, [salida_x - 0.34, cy, 0],
@@ -111,12 +97,10 @@ def _neurona_artificial(scene, centro=np.array([3.55, 0.3, 0.0])):
     salida.set_fill(RELLENO_NODO, opacity=1.0).move_to([salida_x, cy, 0])
     y_lbl = _m(r"\hat{y}", PRIMARIO, 0.62).move_to(salida.get_center())
 
-    # --- Fórmula ------------------------------------------------------------
     formula = _m(r"\hat{y} = \mathrm{ReLU}\!\left(\sum_i x_i w_i + b\right)",
                  SECUNDARIO, 0.78)
     formula.move_to([cx, cy - R - 1.25, 0])
 
-    # ---------------------- Animación ---------------------------------------
     scene.play(
         LaggedStart(*[GrowFromCenter(VGroup(n, l))
                       for n, l in zip(nodos, x_labels)],
@@ -135,7 +119,6 @@ def _neurona_artificial(scene, centro=np.array([3.55, 0.3, 0.0])):
         FadeIn(b_mas), run_time=0.6,
     )
 
-    # Pulsos de señal viajando por cada arista hacia el cuerpo
     pulsos = [Dot(color=CLARO, radius=0.06).move_to(a.get_start())
               for a in aristas]
     scene.play(*[MoveAlongPath(p, a) for p, a in zip(pulsos, aristas)],
@@ -148,7 +131,6 @@ def _neurona_artificial(scene, centro=np.array([3.55, 0.3, 0.0])):
     )
     scene.remove(*pulsos)
 
-    # Salida
     scene.play(Create(flecha), run_time=0.5)
     pulso_out = Dot(color=CLARO, radius=0.06).move_to(flecha.get_start())
     scene.play(MoveAlongPath(pulso_out, flecha), run_time=0.5)
@@ -159,18 +141,16 @@ def _neurona_artificial(scene, centro=np.array([3.55, 0.3, 0.0])):
     scene.remove(pulso_out)
     scene.play(Indicate(salida, color=PRIMARIO), run_time=0.4)
 
-    # Fórmula
     scene.play(Write(formula), run_time=1.1)
 
 
 def construir(scene):
-    # --- Barra de acento y columna izquierda ------------------------------
     barra = Line(UP * 2.5, DOWN * 2.5, color=PRIMARIO, stroke_width=6)
     barra.to_edge(LEFT, buff=0.8)
 
     antetitulo = texto("SEMILLERO APERTURE", 15, color=PRIMARIO)
     titulo = VGroup(
-        texto("¿COMO", 26, color=CLARO, font=FONT_TITULO),  # Press Start 2P: sin acento
+        texto("¿COMO", 26, color=CLARO, font=FONT_TITULO),
         texto("FUNCIONAN", 26, color=CLARO, font=FONT_TITULO),
         texto("LAS REDES", 26, color=CLARO, font=FONT_TITULO),
         texto("NEURONALES?", 26, color=PRIMARIO, font=FONT_TITULO),
@@ -190,10 +170,8 @@ def construir(scene):
     bloque = VGroup(antetitulo, titulo, linea, subtitulo)
     bloque.next_to(barra, RIGHT, buff=0.5).set_y(0)
 
-    # --- Logo del semillero en la esquina inferior derecha ----------------
     logo = logo_esquina()
 
-    # --- Animación: primero el texto, luego la neurona --------------------
     scene.play(GrowFromEdge(barra, UP), run_time=0.5)
     scene.play(FadeIn(antetitulo, shift=RIGHT * 0.15), run_time=0.4)
     for linea_titulo in titulo:

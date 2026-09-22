@@ -1,10 +1,3 @@
-"""Diapositiva 9 — Entonces, ¿qué nos falta?
-
-Vuelve el perceptrón de la 6, pero ahora se abre un hueco entre el sumatorio y
-la salida. Ese hueco se queda marcado con una interrogación y no se rellena
-hasta la 13 (ReLU): todo el bloque 2 existe para encontrar qué va ahí.
-"""
-
 import numpy as np
 from manim import (
     DOWN,
@@ -47,7 +40,6 @@ def construir(scene):
     encabezado = hacer_titulo("Entonces, ¿qué nos falta?")
     centro_cuerpo = np.array([X_CUERPO, Y_EJE, 0.0])
 
-    # --- El perceptrón de la 6, en versión compacta ------------------------
     entradas, aristas = VGroup(), VGroup()
     for y in (1.75, 0.7, -0.35):
         nodo = _nodo([X_ENTRADAS, y, 0], RADIO_NODO, VERDE)
@@ -67,14 +59,12 @@ def construir(scene):
     etiqueta_salida = MathTex(r"\hat{y}", color=AMBAR).scale(0.6)
     etiqueta_salida.move_to(salida.get_center())
 
-    # Flecha directa Σ → ŷ: lo que teníamos hasta ahora.
     flecha_directa = Arrow(
         centro_cuerpo + RIGHT * RADIO_CUERPO, [X_SALIDA - 0.34, Y_EJE, 0],
         color=AMBAR, stroke_width=4, buff=0.05,
         max_tip_length_to_length_ratio=0.1,
     )
 
-    # --- El hueco ----------------------------------------------------------
     hueco = DashedVMobject(
         Circle(radius=RADIO_HUECO, color=CLARO, stroke_width=4),
         num_dashes=26,
@@ -104,7 +94,6 @@ def construir(scene):
         texto("biología", 26, color=PRIMARIO),
     ).arrange(RIGHT, buff=0.22).move_to([0, -3.1, 0])
 
-    # ---------------------- Animación --------------------------------------
     scene.play(FadeIn(encabezado, shift=DOWN * 0.2), run_time=0.6)
     scene.play(
         LaggedStart(*[GrowFromCenter(n) for n in entradas], lag_ratio=0.15),
@@ -121,7 +110,6 @@ def construir(scene):
         run_time=0.7,
     )
 
-    # Se abre el hueco entre el sumatorio y la salida.
     scene.play(
         FadeOut(flecha_directa), Create(flecha_a), Create(flecha_b),
         run_time=0.7,
