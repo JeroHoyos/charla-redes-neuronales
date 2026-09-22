@@ -10,7 +10,7 @@ razonamiento y contadas por separado se rompía justo donde tiene gracia:
 2. la regla de la cadena sobre ese dibujo, con cada factor numerado —y los
    números van de la salida hacia atrás, que es ya la mitad de backprop,
 3. el intento en una red de verdad: una sola ``w`` llega a la salida por ocho
-   caminos, y la cuenta de parámetros explota. A mano no es difícil: no escala,
+   caminos,
 4. y la solución, con su propio título: pasada hacia delante con el error alto,
    zoom a una neurona para ver que cada peso **solo necesita lo que le llega de
    la derecha**, vuelta atrás capa a capa restando el gradiente, y otra pasada
@@ -43,6 +43,7 @@ from manim import (
     Line,
     MathTex,
     MoveAlongPath,
+    MoveToTarget,
     Rectangle,
     Rotate,
     RoundedRectangle,
@@ -61,7 +62,7 @@ Y_CADENA = 0.35
 ANCHO_CAJA, ALTO_CAJA = 1.15, 0.95
 LARGO_FLECHA = 0.62
 
-# --- Actos 3 a 8: la red ---------------------------------------------------
+# --- Actos 3 a 7: la red ---------------------------------------------------
 CAPAS_RED = (3, 4, 4, 2)
 X_RED = -2.0
 Y_RED = -0.65           # el bloque red + termómetro, centrado bajo el título
@@ -85,26 +86,7 @@ Y_PIE_TERMO = -2.3
 LLENO = 0.86              # con los pesos sin tocar
 TRAS_EL_PASO = 0.34       # después de restar el gradiente
 
-# --- Acto 4: la cuenta que explota -----------------------------------------
-# (capas, expresión, escala, parámetros que habría que derivar)
-CRECIMIENTO = (
-    (1, r"\frac{\partial L}{\partial h_1}"
-        r"\cdot \frac{\partial h_1}{\partial w}", 1.15, "12"),
-    (2, r"\frac{\partial L}{\partial h_2}"
-        r"\cdot \frac{\partial h_2}{\partial h_1}"
-        r"\cdot \frac{\partial h_1}{\partial w}", 1.0, "160"),
-    (3, r"\frac{\partial L}{\partial h_3}"
-        r"\cdot \frac{\partial h_3}{\partial h_2}"
-        r"\cdot \frac{\partial h_2}{\partial h_1}"
-        r"\cdot \frac{\partial h_1}{\partial w}", 0.86, "2 400"),
-    (4, r"\frac{\partial L}{\partial h_4}"
-        r"\cdot \frac{\partial h_4}{\partial h_3}"
-        r"\cdot \frac{\partial h_3}{\partial h_2}"
-        r"\cdot \frac{\partial h_2}{\partial h_1}"
-        r"\cdot \frac{\partial h_1}{\partial w}", 0.74, "38 000"),
-)
-
-# --- Acto 6: el zoom a una neurona -----------------------------------------
+# --- Acto 5: el zoom a una neurona -----------------------------------------
 Y_NEURONA = 0.2
 PASO_ENTRADA = 1.15
 X_ENTRADA = -4.0
@@ -225,9 +207,9 @@ def _numerito(n, debajo_de):
 def _x_capa(i):
     """Abscisa de la capa ``i`` en la posición **final** de la red.
 
-    Se calcula de las constantes y no del mobject a propósito: durante los
-    actos 3 y 4 la red anda centrada y ampliada, así que preguntarle dónde
-    está devuelve el sitio de entonces, no el de después.
+    Se calcula de las constantes y no del mobject a propósito: durante el
+    acto 3 la red anda centrada y ampliada, así que preguntarle dónde está
+    devuelve el sitio de entonces, no el de después.
     """
     return X_RED + (i - (len(CAPAS_RED) - 1) / 2) * SEP_CAPA
 
@@ -500,13 +482,13 @@ def construir(scene):
         _numerito(n, cadena[2 * n]) for n in (1, 2, 3, 4)
     ])
 
-    # --- Actos 3 a 8: la red ------------------------------------------------
+    # --- Actos 3 a 7: la red ------------------------------------------------
     capas, conexiones = _red()
     red = VGroup(*conexiones, *capas)
-    # Los actos 3 y 4 no llevan termómetro, así que para ellos la red se
-    # centra y se agranda —y todo lo que se cuelga de ella se calcula ya en
-    # ese tamaño—; en el acto 5 deshace las dos cosas y vuelve a su sitio,
-    # con el tubo ocupando la derecha.
+    # El acto 3 no lleva termómetro, así que para él la red se centra y se
+    # agranda —y todo lo que se cuelga de ella se calcula ya en ese tamaño—;
+    # en el acto 4 deshace las dos cosas y vuelve a su sitio, con el tubo
+    # ocupando la derecha.
     centro_red = np.array([0.0, Y_RED, 0.0])
     red.shift(RIGHT * CENTRADO).scale(AMPLIACION, about_point=centro_red)
 
@@ -521,27 +503,7 @@ def construir(scene):
                              (destino + 1) * len(capas[2])]),
         conexiones[2],
     ]
-    # --- Acto 4: la cuenta que explota -------------------------------------
-    def _bloque(capas_n, expresion, escala, parametros):
-        """Los tres renglones del acto, cada uno anclado a su altura fija.
-
-        Anclados y no apilados con ``arrange``: la fórmula encoge conforme se
-        alarga —de eso va el acto— y con una pila el rótulo y la cuenta darían
-        un brinco en cada paso.
-        """
-        formula = MathTex(expresion, color=CLARO).scale(escala)
-        formula.move_to([0, -0.05, 0])
-        rotulo = texto(f"{capas_n} capa{'s' if capas_n > 1 else ''}", 24,
-                       color=PRIMARIO).move_to([0, 1.55, 0])
-        cuenta = VGroup(
-            texto(parametros, 40, color=AMBAR),
-            texto("parámetros que derivar", 19, color=SECUNDARIO),
-        ).arrange(DOWN, buff=0.14).move_to([0, -2.1, 0])
-        return formula, rotulo, cuenta
-
-    formula, rotulo, cuenta = _bloque(*CRECIMIENTO[0])
-
-    # --- Actos 5 a 8: backpropagation --------------------------------------
+    # --- Actos 4 a 7: backpropagation --------------------------------------
     tubo = _tubo()
     rotulo_termo = texto("error", 19, color=ROJO).next_to(tubo, UP, buff=0.22)
     nivel_alto = _liquido(LLENO)
@@ -623,30 +585,20 @@ def construir(scene):
                                             width=2.2), run_time=0.6)
     scene.next_slide()
 
-    # 4. Y la cuenta, que crece con cada capa hasta que deja de tener sentido.
-    scene.play(FadeOut(red), FadeOut(rot_elegida), run_time=0.7)
-    scene.play(FadeIn(rotulo), Write(formula), FadeIn(cuenta), run_time=1.2)
-    for paso in CRECIMIENTO[1:]:
-        nueva_formula, nuevo_rotulo, nueva_cuenta = _bloque(*paso)
-        scene.play(
-            Transform(formula, nueva_formula),
-            Transform(rotulo, nuevo_rotulo),
-            Transform(cuenta, nueva_cuenta),
-            run_time=0.9,
-        )
-    scene.next_slide()
-
-    # 5. La solución tiene nombre. Una pasada hacia delante, y el error arriba.
+    # 4. La solución tiene nombre. Una pasada hacia delante, y el error arriba.
+    # La red vuelve a su tamaño, a su sitio y a como estaba: sin abanico. Se
+    # desliza en vez de desaparecer y volver, porque sigue siendo la misma.
+    red.generate_target()
+    red.target.scale(1 / AMPLIACION, about_point=centro_red)
+    red.target.shift(LEFT * CENTRADO)
+    for grupo in red.target[:len(conexiones)]:
+        grupo.set_stroke(color=SECUNDARIO, opacity=0.4, width=1.5)
     scene.play(
-        FadeOut(formula), FadeOut(rotulo), FadeOut(cuenta),
+        FadeOut(rot_elegida), MoveToTarget(red),
         FadeOut(encabezado), FadeIn(encabezado_bp, shift=DOWN * 0.2),
         run_time=0.9,
     )
-    # La red vuelve a su tamaño, a su sitio y a como estaba: sin abanico.
-    red.scale(1 / AMPLIACION, about_point=centro_red).shift(LEFT * CENTRADO)
-    for grupo in conexiones:
-        grupo.set_stroke(color=SECUNDARIO, opacity=0.4, width=1.5)
-    scene.play(FadeIn(red), Create(tubo), FadeIn(rotulo_termo), run_time=0.9)
+    scene.play(Create(tubo), FadeIn(rotulo_termo), run_time=0.9)
     _pasada(scene, capas, conexiones, VERDE, run_time=0.42)
     # El termómetro se llena subiendo, no apareciendo de golpe: es el gesto de
     # un termómetro y además encadena con la señal que acaba de llegar.
@@ -655,7 +607,7 @@ def construir(scene):
     scene.play(Transform(nivel, nivel_alto), run_time=0.8)
     scene.next_slide()
 
-    # 6. Zoom a una neurona: se marca cuál, y el nodo se abre por dentro.
+    # 5. Zoom a una neurona: se marca cuál, y el nodo se abre por dentro.
     scene.play(nodo_zoom.animate.set_stroke(color=AMBAR, width=4.5),
                run_time=0.5)
     scene.play(nodo_zoom.animate(rate_func=there_and_back).scale(1.35),
@@ -725,7 +677,7 @@ def construir(scene):
     )
     scene.next_slide()
 
-    # 7. Y lo mismo en toda la red: hacia atrás, capa a capa, restando.
+    # 6. Y lo mismo en toda la red: hacia atrás, capa a capa, restando.
     scene.play(FadeOut(piezas_neurona), FadeOut(reuso),
                FadeOut(etiqueta_relu), run_time=0.7)
     red.scale(1 / ZOOM, about_point=foco)
@@ -761,7 +713,7 @@ def construir(scene):
     scene.play(FadeOut(anterior, shift=DOWN * 0.3), run_time=0.45)
     scene.next_slide()
 
-    # 8. Otra vez hacia delante, con los pesos ya corregidos.
+    # 7. Otra vez hacia delante, con los pesos ya corregidos.
     _pasada(scene, capas, conexiones, VERDE, run_time=0.42)
     scene.play(Transform(nivel, _liquido(TRAS_EL_PASO)), run_time=1.0)
     scene.wait(0.4)

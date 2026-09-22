@@ -45,13 +45,6 @@ Después de la charla viene una parte práctica iniciando por [`practica/00_inic
 - _Teorema de aproximación universal: el componente fundamental del aprendizaje profundo_. Youtube. https://www.youtube.com/watch?v=wen3221_3gU
 - _Cómo funcionan las redes neuronales - Inteligencia Artificial_. Youtube. https://www.youtube.com/watch?v=CU24iC3grq8&t=6s
 
-### Cursos
-
-La parte práctica sigue estos dos:
-
-- _PyTorch for Deep Learning Professional Certificate_. DeepLearning.AI. https://www.deeplearning.ai/specializations/pytorch-for-deep-learning-professional-certificate
-- _Deep Learning Specialization_. DeepLearning.AI. https://www.deeplearning.ai/specializations/deep-learning
-
 ### Otros
 
 - Roller, S. _Desglose del cómputo (FLOPs) por componente en modelos de lenguaje (OPT)_. X (Twitter). https://x.com/stephenroller/status/1579993017234382849
