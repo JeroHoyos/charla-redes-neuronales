@@ -17,3 +17,7 @@ __pycache__/
 .claude/
 # Pesos que generan los cuadernos
 practica/datos/*.pt
+
+# Fotos que descarga el cuaderno 03 (261 MB)
+practica/data/hotdog/
+practica/data/hotdog.zip

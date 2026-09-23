@@ -1,4 +1,4 @@
-"""El triqui visto de frente: la gráfica del cuaderno 03."""
+"""El triqui visto de frente: la gráfica del cuaderno 04."""
 
 import matplotlib.pyplot as plt
 
