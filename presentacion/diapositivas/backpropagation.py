@@ -12,15 +12,13 @@ from manim import (
     LaggedStart,
     Line,
     MathTex,
-    MoveToTarget,
-    Transform,
     VGroup,
     Write,
 )
 
 from componentes import texto
 from componentes import titulo as hacer_titulo
-from estilo import AMBAR, CLARO, FONDO, PRIMARIO, ROJO, SECUNDARIO, VERDE
+from estilo import AMBAR, CLARO, FONDO, PRIMARIO, ROJO, SECUNDARIO
 
 from . import _backprop
 
@@ -77,7 +75,6 @@ def _numerito(n, debajo_de):
 
 def construir(scene):
     encabezado = hacer_titulo("Una función dentro de otra")
-    encabezado_bp = hacer_titulo("Backpropagation")
 
     compuesta = MathTex(
         "L", "(", "w", ")", "=", "L", r"\big(", "f(x;", "w", ")", ",", "y",
@@ -124,9 +121,6 @@ def construir(scene):
                              (destino + 1) * len(capas[2])]),
         conexiones[2],
     ]
-    tubo = _backprop.tubo()
-    rotulo_termo = texto("error", 19, color=ROJO).next_to(tubo, UP, buff=0.22)
-    nivel_alto = _backprop.liquido(_backprop.LLENO)
 
     scene.play(FadeIn(encabezado, shift=DOWN * 0.2), run_time=0.6)
     scene.play(FadeIn(compuesta), run_time=0.8)
@@ -159,21 +153,4 @@ def construir(scene):
     for grupo in abanico:
         scene.play(grupo.animate.set_stroke(color=ROJO, opacity=0.75,
                                             width=2.2), run_time=0.6)
-    scene.next_slide()
-
-    red.generate_target()
-    red.target.scale(1 / AMPLIACION, about_point=centro_red)
-    red.target.shift(LEFT * CENTRADO)
-    for grupo in red.target[:len(conexiones)]:
-        grupo.set_stroke(color=SECUNDARIO, opacity=0.4, width=1.5)
-    scene.play(
-        FadeOut(rot_elegida), MoveToTarget(red),
-        FadeOut(encabezado), FadeIn(encabezado_bp, shift=DOWN * 0.2),
-        run_time=0.9,
-    )
-    scene.play(Create(tubo), FadeIn(rotulo_termo), run_time=0.9)
-    _backprop.pasada(scene, capas, conexiones, VERDE, run_time=0.42)
-    nivel = _backprop.liquido(0.02)
-    scene.add(nivel)
-    scene.play(Transform(nivel, nivel_alto), run_time=0.8)
     scene.next_slide()

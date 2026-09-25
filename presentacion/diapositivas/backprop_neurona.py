@@ -5,6 +5,7 @@ from manim import (
     UP,
     Arrow,
     Circle,
+    Create,
     Dot,
     FadeIn,
     FadeOut,
@@ -133,6 +134,7 @@ def _neurona():
 
 
 def construir(scene):
+    encabezado_bp = hacer_titulo("Backpropagation")
     encabezado = hacer_titulo("Dentro de una neurona")
     encabezado_red = hacer_titulo("Toda la red")
 
@@ -140,7 +142,7 @@ def construir(scene):
     red = VGroup(*conexiones, *capas)
     tubo = _backprop.tubo()
     rotulo_termo = texto("error", 19, color=ROJO).next_to(tubo, UP, buff=0.22)
-    nivel = _backprop.liquido(_backprop.LLENO)
+    nivel = _backprop.liquido(0.02)
 
     nucleo, resto_neurona, perillas, sesgo, tramos = _neurona()
     flecha_a, flecha_z, cables_suma, cables_peso, cable_sesgo = tramos
@@ -171,13 +173,20 @@ def construir(scene):
     ).scale(0.6).move_to([X_RELU, Y_NEURONA + 0.95, 0])
     nodo_zoom = capas[1][_backprop.ARISTA_ELEGIDA % len(capas[1])]
 
-    scene.play(FadeIn(encabezado, shift=DOWN * 0.2), run_time=0.6)
+    scene.play(FadeIn(encabezado_bp, shift=DOWN * 0.2), run_time=0.6)
+    scene.play(FadeIn(red), run_time=0.9)
+    scene.play(Create(tubo), FadeIn(rotulo_termo), run_time=0.9)
+    _backprop.pasada(scene, capas, conexiones, VERDE, run_time=0.42)
+    scene.add(nivel)
+    scene.play(Transform(nivel, _backprop.liquido(_backprop.LLENO)),
+               run_time=0.8)
+    scene.next_slide()
+
     scene.play(
-        FadeIn(red), FadeIn(tubo), FadeIn(rotulo_termo), FadeIn(nivel),
-        run_time=0.9,
+        FadeOut(encabezado_bp), FadeIn(encabezado, shift=DOWN * 0.2),
+        nodo_zoom.animate.set_stroke(color=AMBAR, width=4.5),
+        run_time=0.6,
     )
-    scene.play(nodo_zoom.animate.set_stroke(color=AMBAR, width=4.5),
-               run_time=0.5)
     scene.play(nodo_zoom.animate(rate_func=there_and_back).scale(1.35),
                run_time=0.6)
     scene.next_slide()
