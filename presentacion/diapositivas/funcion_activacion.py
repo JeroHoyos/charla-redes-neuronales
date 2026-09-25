@@ -1,15 +1,3 @@
-"""Diapositiva 13 — La función de activación.
-
-El umbral de la neurona, traducido a matemáticas: si la suma es negativa, sale
-0; si es positiva, sale tal cual. Esa es la función de activación —aquí, ReLU— y
-al final la pieza cae en el hueco que quedó marcado con la interrogación.
-
-Arranca con el nombre entero —Rectified Linear Unit— encima de la gráfica y, ya
-vista la fórmula, se queda en la sigla. Cierra enseñando la neurona entera ya
-montada: el mismo perceptrón, pero con el cuerpo partido en el sumatorio y,
-detrás, la activación.
-"""
-
 import numpy as np
 from manim import (
     BOLD,
@@ -44,7 +32,6 @@ from estilo import AMBAR, CLARO, FONDO, MORADO, PRIMARIO, SECUNDARIO, VERDE
 X_GRAFICA = -3.3
 RANGO = 3.0
 
-# El modelo completo con el que cierra la diapositiva.
 X_ENTRADAS = -4.3
 X_MODELO = 0.0
 Y_MODELO = 0.35
@@ -56,7 +43,6 @@ FILAS_MODELO = ((1.75, "x_1", "w_1"), (0.35, "x_2", "w_2"), (-1.05, "x_n", "w_n"
 
 
 def _trazo(inicio, fin, color):
-    """Tramo de la curva con su resplandor detrás: le da cuerpo sin engordarlo."""
     resplandor = Line(inicio, fin, color=color, stroke_width=15)
     resplandor.set_stroke(opacity=0.15)
     linea = Line(inicio, fin, color=color, stroke_width=5)
@@ -64,11 +50,6 @@ def _trazo(inicio, fin, color):
 
 
 def _modelo():
-    """El perceptrón completo: entradas, cuerpo partido en Σ y activación, salida.
-
-    Es el mismo dibujo de la diapositiva del perceptrón, con la diferencia que
-    justifica esta: el cuerpo ya no solo suma, detrás tiene la activación.
-    """
     centro = np.array([X_MODELO, Y_MODELO, 0.0])
     cx, cy = X_MODELO, Y_MODELO
 
@@ -105,7 +86,6 @@ def _modelo():
     sigma = MathTex(r"\Sigma", color=CLARO).scale(0.95)
     sigma.move_to([cx - 0.44, cy, 0])
 
-    # La mitad de atrás: la ReLU en pequeño, con su eje.
     origen = np.array([cx + 0.36, cy - 0.24, 0.0])
     activacion = VGroup(
         Line(origen + LEFT * 0.28, origen + RIGHT * 0.42,
@@ -168,8 +148,6 @@ def construir(scene):
         },
     ).move_to([X_GRAFICA, -0.35, 0])
 
-    # ReLU en dos tramos, cada uno con su color —apagado / deja pasar—, con su
-    # resplandor detrás y un punto en el codo.
     tramo_cero = _trazo(ejes.c2p(-RANGO + 0.2, 0), ejes.c2p(0, 0), SECUNDARIO)
     tramo_pasa = _trazo(ejes.c2p(0, 0), ejes.c2p(2.7, 2.7), VERDE)
     quiebro = VGroup(
@@ -177,7 +155,6 @@ def construir(scene):
         Dot(ejes.c2p(0, 0), radius=0.075, color=CLARO),
     )
 
-    # Primero el nombre entero, y en cuanto se ha leído se queda en la sigla.
     nombre = texto("Rectified Linear Unit", 22, color=VERDE)
     nombre.move_to([X_GRAFICA, 1.95, 0])
     sigla = texto("ReLU", 30, color=VERDE, weight=BOLD)
@@ -187,7 +164,6 @@ def construir(scene):
         r"\mathrm{ReLU}(z) = \max(0,\, z)", color=CLARO,
     ).scale(0.85).move_to([X_GRAFICA, -2.7, 0])
 
-    # --- El hueco de la 9, ahora relleno -----------------------------------
     x_hueco = 3.4
     y_hueco = 0.9
     entrada = MathTex(r"\Sigma", color=PRIMARIO).scale(0.8)
@@ -223,7 +199,6 @@ def construir(scene):
         texto("ya está en su sitio", 20, color=VERDE),
     ).arrange(DOWN, buff=0.16).move_to([x_hueco, -1.6, 0])
 
-    # ---------------------- Animación --------------------------------------
     scene.play(FadeIn(encabezado, shift=DOWN * 0.2), run_time=0.6)
     scene.play(FadeIn(nombre, shift=DOWN * 0.15), run_time=0.7)
     scene.play(Create(ejes), run_time=0.8)
@@ -231,12 +206,9 @@ def construir(scene):
     scene.play(Create(tramo_pasa), run_time=0.9)
     scene.play(Write(formula), run_time=0.9)
 
-    # Ya dicho el nombre entero y vista la fórmula, se queda en la sigla, que
-    # es como la llamaremos el resto de la charla.
     scene.play(Transform(nombre, sigla), run_time=0.8)
     scene.next_slide()
 
-    # Vuelve el hueco que quedó marcado, y ReLU cae dentro.
     scene.play(
         FadeIn(entrada), FadeIn(salida),
         Create(flecha_a), Create(flecha_b),
@@ -256,9 +228,6 @@ def construir(scene):
     )
     scene.next_slide()
 
-    # --- Y así queda la neurona entera -------------------------------------
-    # El mismo perceptrón de su diapositiva, pero con el cuerpo partido en dos:
-    # el sumatorio y, detrás, la activación que acabamos de meter.
     viejo = VGroup(
         ejes, tramo_cero, tramo_pasa, quiebro, formula, nombre,
         entrada, salida, flecha_a, flecha_b, hueco, mini_relu, resuelto,
@@ -282,7 +251,6 @@ def construir(scene):
         GrowFromCenter(modelo["cuerpo"]), FadeIn(modelo["sigma"]),
         run_time=0.7,
     )
-    # La mitad nueva del cuerpo: la activación.
     scene.play(Create(modelo["divisor"]), Create(modelo["activacion"]),
                run_time=0.8)
     scene.play(
@@ -292,7 +260,6 @@ def construir(scene):
     )
     scene.next_slide()
 
-    # Una señal lo recorre entero, ya con activación.
     pulsos = [
         Dot(color=VERDE, radius=0.07).move_to(a.get_start())
         for a in modelo["aristas"]

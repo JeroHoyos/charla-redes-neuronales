@@ -1,23 +1,3 @@
-"""Diapositiva 17 — ¿Y si hay que decidir?
-
-Dos actos con la misma red: lo único que cambia es lo que le entra.
-
-Acto 1, regresión: le enseñamos una casa y sale 240 €. Eso es la respuesta, tal
-cual. Es lo que llevamos toda la charla haciendo y funciona.
-
-Acto 2, clasificación: le enseñamos un gato. La red no sabe hacer otra cosa que
-dar un número, así que da un número: 2.7. ¿Y eso qué es? No hay forma de leerlo
-—en la recta no hay ninguna marca que diga de dónde para allá es que sí—, así
-que se dibujan tres cortes posibles, todos igual de defendibles, y ahí se queda
-la pregunta. La respuesta es la diapositiva siguiente.
-
-Va sin apenas letra: la pregunta la hace un dibujo (la casa, el gato) en vez de
-una frase, y lo que queda son la red, el número y la recta. En el acto 1 la red
-va a lo grande, porque no comparte pantalla con nada; al entrar el acto 2 se
-encoge y sube para dejarle sitio abajo a la recta. Ese encogerse es la propia
-transición entre los dos actos.
-"""
-
 import numpy as np
 from manim import (
     DOWN,
@@ -46,68 +26,52 @@ from componentes import texto
 from componentes import titulo as hacer_titulo
 from estilo import AMBAR, FONDO, MORADO, PRIMARIO, ROJO, SECUNDARIO, VERDE
 
-# --- La fila: dibujo → red → número ----------------------------------------
-# Las medidas de abajo son las del acto 2. El acto 1 es la misma fila a
-# ``K_ACTO1``, centrada en pantalla; el ancho es lo que pone el techo al
-# aumento, no el alto.
-CX = 0.0               # eje sobre el que se escala la fila
+CX = 0.0
 K_ACTO1 = 1.6
 K_ACTO2 = 0.9
-Y_ACTO1 = -0.6         # centro óptico de lo que deja libre el título
+Y_ACTO1 = -0.6
 Y_FILA = 0.85
 
-# Las x van cuadradas para que la fila quede centrada en pantalla a escala 1.
 X_ICONO = -3.49
-X_CAPAS = (-2.29, -1.29, -0.29, 0.71)   # entrada, dos ocultas y salida
+X_CAPAS = (-2.29, -1.29, -0.29, 0.71)
 CAPAS = (4, 6, 6, 1)
 PASO_NODO = 0.5
 RADIOS = (0.16, 0.15, 0.15, 0.21)
 X_FLECHA = (1.01, 2.06)
 X_NUMERO = 3.06
 
-# --- La recta de abajo -----------------------------------------------------
 Y_RECTA = -2.75
 V_MIN, V_MAX = -1, 4
-V_CENTRO = 1.5          # qué valor cae en x = 0
-ESCALA = 1.4            # unidades de pantalla por unidad de la recta
-SALIDA = 2.7            # lo que responde la red al enseñarle el gato
-CORTES = (0, 1, 2)      # los tres sitios donde sería razonable partirla
+V_CENTRO = 1.5
+ESCALA = 1.4
+SALIDA = 2.7
+CORTES = (0, 1, 2)
 
 
 def _x(valor):
-    """Sitio en pantalla del valor ``valor`` de la recta."""
     return (valor - V_CENTRO) * ESCALA
 
 
 def _px(x, k):
-    """Una x de la fila, escalada respecto al eje ``CX``."""
     return CX + (x - CX) * k
 
 
 def _punto(x, dy, y, k):
-    """Un punto de la fila: ``x`` de la tabla, ``dy`` respecto a su línea."""
     return np.array([_px(x, k), y + dy * k, 0.0])
 
 
 def _colores_capa():
-    """De cian a violeta por las ocultas, y ámbar en la salida.
-
-    La misma idea que en las diapositivas del ajuste: el color dice por dónde
-    va la señal, y el ámbar de la salida es el de siempre.
-    """
     a, b = ManimColor(PRIMARIO), ManimColor(MORADO)
     return [a, interpolate_color(a, b, 0.5), b, ManimColor(AMBAR)]
 
 
 def _nodo(centro, color, radio):
-    """Nodo plano, sin halo: circunferencia rellena del fondo."""
     return Circle(radius=radio, color=color, stroke_width=2.8).set_fill(
         FONDO, opacity=1.0
     ).move_to(centro)
 
 
 def _casa(color, k):
-    """La pregunta del acto 1, dibujada: ¿cuánto cuesta esta casa?"""
     casa = VGroup(
         Polygon([-0.52, 0.1, 0], [0.0, 0.58, 0], [0.52, 0.1, 0],
                 color=color, stroke_width=3),
@@ -122,7 +86,6 @@ def _casa(color, k):
 
 
 def _gato(color, k):
-    """La pregunta del acto 2, dibujada: ¿esto es un gato?"""
     gato = VGroup(
         Circle(radius=0.42, color=color, stroke_width=3),
         VGroup(*[
@@ -147,12 +110,6 @@ def _gato(color, k):
 
 
 def _red(y, k):
-    """La red entera: cuatro entradas, dos capas ocultas y una salida.
-
-    Se dibuja completa —es la protagonista de los dos actos— con cada capa de
-    su color y las conexiones tomando el del extremo del que salen, que es lo
-    que hace que la malla se lea y no sea una maraña gris.
-    """
     colores = _colores_capa()
     columnas = [
         [
@@ -190,7 +147,6 @@ def _flecha(y, k):
 
 
 def _bloque(y, k, dibujo, etiqueta, valor, color_valor):
-    """Coloca las piezas que rodean a la red, a la altura y escala dadas."""
     dibujo.move_to(_punto(X_ICONO, 0.12, y, k))
     pie = texto(etiqueta, 19, color=SECUNDARIO).scale(k)
     pie.move_to(_punto(X_ICONO, -0.95, y, k))
@@ -202,7 +158,6 @@ def _bloque(y, k, dibujo, etiqueta, valor, color_valor):
 def construir(scene):
     encabezado = hacer_titulo("¿Y si hay que decidir?")
 
-    # --- Acto 1: la regresión, que ya sabemos hacer ------------------------
     nodos, aristas, tramos, colores = _red(Y_ACTO1, K_ACTO1)
     flecha = _flecha(Y_ACTO1, K_ACTO1)
     casa, pie, respuesta = _bloque(
@@ -210,13 +165,11 @@ def construir(scene):
         "240 €", VERDE,
     )
 
-    # --- Acto 2, primero en grande: el gato y el número que da la red ------
     gato, pie_2, respuesta_2 = _bloque(
         Y_ACTO1, K_ACTO1, _gato(PRIMARIO, K_ACTO1), "¿gato?",
         f"{SALIDA}", AMBAR,
     )
 
-    # --- Y ya luego encogido, para que quepa la recta ----------------------
     nodos_3, aristas_3, _, _ = _red(Y_FILA, K_ACTO2)
     flecha_3 = _flecha(Y_FILA, K_ACTO2)
     gato_3, pie_3, respuesta_3 = _bloque(
@@ -224,7 +177,6 @@ def construir(scene):
         f"{SALIDA}", AMBAR,
     )
 
-    # La recta donde vive ese número, sin ninguna marca que diga qué es mucho.
     recta = Line(
         np.array([_x(V_MIN) - 0.3, Y_RECTA, 0]),
         np.array([_x(V_MAX) + 0.3, Y_RECTA, 0]),
@@ -251,7 +203,6 @@ def construir(scene):
         color=AMBAR, stroke_width=1.8, dash_length=0.09,
     ).set_stroke(opacity=0.4)
 
-    # Tres sitios por donde partir, todos igual de defendibles.
     cortes = VGroup(*[
         VGroup(
             DashedLine(
@@ -265,7 +216,6 @@ def construir(scene):
     ])
 
     def _oleada():
-        """La señal atravesando la red, un tramo detrás de otro."""
         for i, tramo in enumerate(tramos):
             pulsos = [
                 Dot(color=colores[i], radius=0.055).move_to(a.get_start())
@@ -278,7 +228,6 @@ def construir(scene):
             )
             scene.remove(*pulsos)
 
-    # ---------------------- Animación --------------------------------------
     scene.play(FadeIn(encabezado, shift=DOWN * 0.2), run_time=0.6)
     scene.play(
         LaggedStart(*[FadeIn(c, scale=0.5) for c in nodos], lag_ratio=0.15),
@@ -293,9 +242,6 @@ def construir(scene):
     )
     scene.next_slide()
 
-    # Misma red, otra pregunta. Se queda en grande: lo que hay que mirar ahora
-    # es el número que sale, no la red. Y se recorre otra vez entera, porque es
-    # exactamente la misma cuenta de antes: nada de la red ha cambiado.
     scene.play(
         FadeOut(casa, shift=UP * 0.3), FadeIn(gato, shift=UP * 0.3),
         Transform(pie, pie_2),
@@ -306,7 +252,6 @@ def construir(scene):
     scene.play(FadeIn(respuesta_2, shift=RIGHT * 0.2), run_time=0.7)
     scene.next_slide()
 
-    # Y ahora sí, todo se encoge y sube para dejarle sitio abajo a la recta.
     scene.play(
         Transform(nodos, nodos_3), Transform(aristas, aristas_3),
         Transform(flecha, flecha_3),

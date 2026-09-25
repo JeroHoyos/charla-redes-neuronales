@@ -1,371 +1,242 @@
-"""Diapositiva 19 — ¿Cómo calificamos el modelo?
-
-Une lo que antes eran dos diapositivas sueltas (el error en regresión y el error
-en clasificación) en un solo hilo, porque son la misma idea contada dos veces:
-para poder mejorar hay que poder ponerle nota a lo que hace el modelo, y esa
-nota la da una **función de error**.
-
-Tres pantallas, y las tres con el mismo gesto —primero un modelo malo, con el
-termómetro arriba, y luego uno bueno, con el termómetro abajo—, que es lo que
-hace que se lean como la misma idea:
-
-1. los datos y lo que falla en cada punto, medido como distancia,
-2. el MSE, con los errores dibujados como **cuadrados**, porque lo que suma la
-   fórmula es el área y no la distancia,
-3. la binary cross entropy, con la curva de ``-log`` y el coste de acertar con
-   dudas frente a acertar seguro.
-
-Los datos son curvados a propósito: si fueran una recta, cualquier recta
-acertaría y no habría nada que calificar. Y los colores se mantienen de punta a
-punta —lo real en claro, lo que predice el modelo en cian y el error siempre en
-rojo—, en los dibujos y dentro de las fórmulas.
-"""
-
 import numpy as np
 from manim import (
     DOWN,
-    RIGHT,
+    LEFT,
     UP,
-    Axes,
     Create,
-    DashedLine,
+    DecimalNumber,
     Dot,
     FadeIn,
     FadeOut,
+    Indicate,
     LaggedStart,
+    Line,
+    ManimColor,
     MathTex,
     Rectangle,
-    Square,
+    RoundedRectangle,
     Transform,
+    ValueTracker,
     VGroup,
+    always_redraw,
+    interpolate_color,
+    linear,
+    smooth,
 )
 
 from componentes import texto
 from componentes import titulo as hacer_titulo
 from estilo import CLARO, FONDO, PRIMARIO, ROJO, SECUNDARIO, VERDE
 
-# --- Los datos -------------------------------------------------------------
-# Pocos y bien separados: los cuadrados del error crecen con el lado, y con los
-# puntos juntos se montaban unos encima de otros y tapaban el dibujo.
-XS = (0.4, 1.05, 1.7, 2.35, 3.0, 3.65)
-RUIDO = (0.1, -0.12, 0.08, -0.1, 0.12, -0.08)
+from . import _error
 
-# --- El termómetro grande de la pantalla 1 ---------------------------------
-X_TERMO = 4.35
-ANCHO_TERMO = 0.75
-ALTO_TERMO = 3.1
-Y_PIE_TERMO = -2.05
-LLENO = 0.9              # hasta dónde sube con el modelo malo
+CENTRO_GRAFICA = [-2.5, -0.4, 0]
+ANCHO_GRAFICA = 6.4
+ALTO_GRAFICA = 3.9
+RADIO_PUNTO = 0.085
 
-# --- La rejilla de las pantallas de fórmula --------------------------------
-Y_PIE = 1.85
-Y_FORMULA = 0.8
-Y_LEYENDA = -0.85        # primera fila
-CENTRO_GRAFICA_APOYO = [2.35, -1.5, 0]
-ANCHO_GRAFICA_APOYO = 4.3
-ALTO_GRAFICA_APOYO = 2.5
-X_TERMO_APOYO = 5.5
-ANCHO_TERMO_APOYO = 0.5
-ALTO_TERMO_APOYO = 2.1
-Y_PIE_TERMO_APOYO = -2.6
+CENTRO_PANEL = np.array([3.95, -0.4, 0])
+ANCHO_PANEL = 4.2
+ALTO_PANEL = 3.9
+Y_CABECERA = 1.2
+Y_RAYA = 0.88
+X_LECTURA = 3.2
+Y_FORMULA = 0.2
+Y_VALOR = -0.65
+ANCLA_ESTADO = np.array([2.2, -1.8, 0])
 
-# Las dos probabilidades que se comparan en clasificación.
-P_MALA, P_BUENA = 0.1, 0.9
+X_TERMO = 5.3
+ANCHO_TERMO = 0.55
+ALTO_TERMO = 2.3
+Y_PIE_TERMO = -2.0
 
-
-def _real(x):
-    """Lo que hacen los datos de verdad: suben, bajan y vuelven a subir."""
-    return 2.1 + 1.15 * np.sin(1.75 * np.asarray(x) - 0.7)
+INICIO_BARRIDO = 0.1
+FIN_BARRIDO = 4.0
+Y_TOPE_HAZ = 4.0
+DURACION_BARRIDO = 3.2
+RAMPA = 0.25
+ANCHO_DESTELLO = 0.12
+BRILLOS = ((0.7, 0.05), (0.36, 0.08), (0.14, 0.12))
 
 
-def _leyenda(entradas, x_simbolo=-5.5, paso=0.6):
-    """Los símbolos de una fórmula, uno por fila, con su color y su glosa."""
-    grupo = VGroup()
-    for fila, (simbolo, color, glosa) in enumerate(entradas):
-        y = Y_LEYENDA - fila * paso
-        grupo.add(
-            MathTex(simbolo, color=color).scale(0.8).move_to([x_simbolo, y, 0]),
-            texto(glosa, 19, color=SECUNDARIO).next_to(
-                np.array([x_simbolo + 0.45, y, 0]), RIGHT, buff=0,
-            ),
-        )
-    return grupo
+def _detectado(t, x):
+    return smooth(float(np.clip((t - x) / RAMPA, 0.0, 1.0)))
 
 
-def _tubo(x, y_pie, ancho, alto):
-    """El envase del termómetro, que nunca cambia."""
-    tubo = Rectangle(
-        width=ancho, height=alto,
-        stroke_color=SECUNDARIO, stroke_width=2,
-    ).set_fill(FONDO, opacity=1.0)
-    return tubo.move_to([x, y_pie + alto / 2, 0])
+def _destello(t, x):
+    return float(np.exp(-(((t - x) / ANCHO_DESTELLO) ** 2)))
 
 
-def _liquido(x, y_pie, ancho, alto, fraccion, color=ROJO):
-    """El nivel, siempre anclado al fondo del tubo."""
-    llenado = max(alto * fraccion, 0.03)
-    barra = Rectangle(
-        width=ancho - 0.13, height=llenado,
-        stroke_width=0, fill_color=color, fill_opacity=0.8,
-    )
-    return barra.move_to([x, y_pie + llenado / 2, 0])
+def _cuadrados(ys, funcion):
+    return (ys - funcion(np.array(_error.XS))) ** 2
 
 
-def _ejes_datos(centro, ancho, alto):
-    return Axes(
-        x_range=[0, 4.1, 1], y_range=[0, 4.2, 1],
-        x_length=ancho, y_length=alto,
-        axis_config={
-            "color": SECUNDARIO, "stroke_width": 2.2,
-            "include_ticks": False, "tip_width": 0.14, "tip_height": 0.14,
-        },
-    ).move_to(centro)
+def _acumulado(t, cuadrados):
+    return sum(
+        _detectado(t, x) * c for x, c in zip(_error.XS, cuadrados)
+    ) / len(_error.XS)
 
 
-def _dibujo_datos(ejes, ys, funcion, forma, radio=0.085, grosor=4):
-    """Puntos, aproximación y el error de cada uno.
-
-    ``forma`` decide cómo se pinta ese error. Como distancia mientras solo se
-    habla de "lo que falla", y como **cuadrado** en cuanto aparece el MSE: lo
-    que esa fórmula suma es el área, no la distancia, y con segmentos el dibujo
-    sería el del MAE y engañaría.
-    """
-    puntos = VGroup(*[
-        Dot(ejes.c2p(x, y), radius=radio, color=CLARO) for x, y in zip(XS, ys)
+def _haz(ejes):
+    abajo = ejes.c2p(0, 0)[1]
+    arriba = ejes.c2p(0, Y_TOPE_HAZ)[1]
+    brillos = VGroup(*[
+        Rectangle(
+            width=ancho, height=arriba - abajo, stroke_width=0,
+            fill_color=ROJO, fill_opacity=opacidad,
+        ).move_to([0, (arriba + abajo) / 2, 0])
+        for ancho, opacidad in BRILLOS
     ])
-    curva = ejes.plot(
-        lambda x: float(funcion(x)), x_range=[0.15, 3.9], color=PRIMARIO,
-    ).set_stroke(width=grosor)
-
-    alto_unidad = ejes.c2p(0, 1)[1] - ejes.c2p(0, 0)[1]
-    errores = VGroup()
-    for x, y in zip(XS, ys):
-        prediccion = float(funcion(x))
-        if forma == "distancias":
-            errores.add(DashedLine(
-                ejes.c2p(x, y), ejes.c2p(x, prediccion),
-                color=ROJO, stroke_width=grosor, dash_length=0.11,
-            ))
-            continue
-        lado = max(abs(y - prediccion) * alto_unidad, 0.02)
-        cuadrado = Square(
-            side_length=lado, stroke_color=ROJO, stroke_width=grosor * 0.55,
-            fill_color=ROJO, fill_opacity=0.25,
-        )
-        cuadrado.move_to([
-            ejes.c2p(x, 0)[0] + lado / 2,
-            ejes.c2p(x, min(y, prediccion))[1] + lado / 2, 0,
-        ])
-        errores.add(cuadrado)
-    return puntos, curva, errores
+    linea = Line([0, abajo, 0], [0, arriba, 0], color=ROJO, stroke_width=2.5)
+    marco = RoundedRectangle(
+        width=0.52, height=0.42, corner_radius=0.1,
+        stroke_color=ROJO, stroke_width=2.5,
+    ).set_fill(FONDO, opacity=1.0)
+    letra = MathTex("L", color=ROJO).scale(0.6).move_to(marco.get_center())
+    cabeza = VGroup(marco, letra).next_to(linea, UP, buff=0)
+    return VGroup(brillos, linea, cabeza)
 
 
-def _ejes_log(centro, ancho, alto):
-    ejes = Axes(
-        x_range=[0, 1.05, 0.25], y_range=[0, 3.2, 1],
-        x_length=ancho, y_length=alto,
-        axis_config={
-            "color": SECUNDARIO, "stroke_width": 2.2,
-            "include_ticks": False, "tip_width": 0.14, "tip_height": 0.14,
-        },
-    ).move_to(centro)
-    curva = ejes.plot(lambda p: -np.log(p), x_range=[0.043, 1.0, 0.01],
-                      color=ROJO).set_stroke(width=3.5)
-    rot_x = MathTex(r"\hat{y}", color=PRIMARIO).scale(0.65)
-    rot_x.next_to(ejes.c2p(1.05, 0), DOWN, buff=0.2)
-    return VGroup(ejes, rot_x), curva
+def _panel():
+    marco = RoundedRectangle(
+        width=ANCHO_PANEL, height=ALTO_PANEL, corner_radius=0.2,
+        stroke_color=SECUNDARIO, stroke_width=2,
+    ).set_stroke(opacity=0.55).set_fill(FONDO, opacity=0.9)
+    marco.move_to(CENTRO_PANEL)
+    cabecera = texto("función de error", 18, color=SECUNDARIO)
+    cabecera.move_to([CENTRO_PANEL[0], Y_CABECERA, 0])
+    raya = Line(
+        [marco.get_left()[0] + 0.25, Y_RAYA, 0],
+        [marco.get_right()[0] - 0.25, Y_RAYA, 0],
+        color=SECUNDARIO, stroke_width=1.5,
+    ).set_stroke(opacity=0.4)
+    formula = MathTex("L", "(", r"\hat{y}", ",", "y", ")").scale(0.95)
+    formula.set_color(CLARO)
+    formula[0].set_color(ROJO)
+    formula[2].set_color(PRIMARIO)
+    formula.move_to([X_LECTURA, Y_FORMULA, 0])
+    return VGroup(marco, cabecera, raya, formula)
 
 
-def _marca_log(ejes, p, color):
-    """Dónde cae una probabilidad en la curva, y cuánto cuesta."""
-    coste = -np.log(p)
-    return VGroup(
-        DashedLine(ejes.c2p(p, 0), ejes.c2p(p, coste), color=color,
-                   stroke_width=2, dash_length=0.08).set_stroke(opacity=0.7),
-        Dot(ejes.c2p(p, coste), radius=0.085, color=color),
-        texto(f"{p}", 18, color=color).next_to(
-            ejes.c2p(p, 0), DOWN, buff=0.14,
-        ),
+def _estado(mensaje, color):
+    punto = Dot(radius=0.07, color=color)
+    rotulo = texto(mensaje, 16, color=SECUNDARIO)
+    return VGroup(punto, rotulo).arrange(buff=0.16).move_to(
+        ANCLA_ESTADO, aligned_edge=LEFT,
     )
+
+
+def _cambiar(viejo, nuevo):
+    viejo.clear_updaters()
+    return [FadeOut(viejo, shift=UP * 0.12), FadeIn(nuevo, shift=UP * 0.12)]
+
+
+def _escaneando(barrido):
+    estado = _estado("escaneando", ROJO)
+    estado[0].add_updater(lambda m: m.set_opacity(
+        0.3 + 0.7 * abs(np.cos(4 * barrido.get_value())),
+    ))
+    return estado
+
+
+def _seguir_distancias(distancias, barrido):
+    for linea, x in zip(distancias, _error.XS):
+        linea.add_updater(lambda m, x=x: m.set_stroke(
+            opacity=_detectado(barrido.get_value(), x),
+            width=4 + 3 * _destello(barrido.get_value(), x),
+        ), call_updater=True)
+
+
+def _seguir_puntos(puntos, barrido):
+    claro, rojo = ManimColor(CLARO), ManimColor(ROJO)
+    for punto, x in zip(puntos, _error.XS):
+        def latir(m, x=x):
+            brillo = _destello(barrido.get_value(), x)
+            m.set_width(2 * RADIO_PUNTO * (1 + 0.9 * brillo))
+            m.set_color(interpolate_color(claro, rojo, brillo))
+        punto.add_updater(latir)
+
+
+def _escanear(scene, barrido, haz, estado, valor):
+    haz.update()
+    activo = _escaneando(barrido)
+    scene.play(FadeIn(haz), *_cambiar(estado, activo), run_time=0.5)
+    scene.play(barrido.animate(rate_func=linear).set_value(FIN_BARRIDO),
+               run_time=DURACION_BARRIDO)
+    listo = _estado("listo", VERDE)
+    scene.play(*_cambiar(activo, listo), FadeOut(haz),
+               Indicate(valor, color=ROJO), run_time=0.7)
+    return listo
 
 
 def construir(scene):
     encabezado = hacer_titulo("¿Cómo calificamos el modelo?")
-    ys = _real(XS) + np.array(RUIDO)
+    ys = _error.datos()
+    mala = _error.ajuste_malo(ys)
 
-    # La mala es la mejor recta posible: aun así no puede con una curva.
-    pendiente, ordenada = np.polyfit(XS, ys, 1)
+    ejes = _error.ejes_datos(CENTRO_GRAFICA, ANCHO_GRAFICA, ALTO_GRAFICA)
+    puntos, curva, dist_mala = _error.dibujo_datos(
+        ejes, ys, mala, "distancias", radio=RADIO_PUNTO,
+    )
+    _, curva_buena, dist_buena = _error.dibujo_datos(
+        ejes, ys, _error.real, "distancias", radio=RADIO_PUNTO,
+    )
+    puntos.set_z_index(2)
 
-    def _mala(x):
-        return pendiente * np.asarray(x) + ordenada
+    barrido = ValueTracker(INICIO_BARRIDO)
+    lectura = {"cuadrados": _cuadrados(ys, mala)}
+    tope = _acumulado(FIN_BARRIDO, lectura["cuadrados"])
 
-    error = {
-        nombre: float(np.mean((ys - funcion(XS)) ** 2))
-        for nombre, funcion in (("mala", _mala), ("buena", _real))
-    }
-    proporcion = error["buena"] / error["mala"]
+    def error_actual():
+        return _acumulado(barrido.get_value(), lectura["cuadrados"])
 
-    # --- Pantalla 1: lo que falla, medido como distancia -------------------
-    ejes = _ejes_datos([-1.7, -0.35, 0], 7.4, 3.9)
-    puntos, curva_mala, dist_mala = _dibujo_datos(ejes, ys, _mala, "distancias")
-    _, curva_buena, dist_buena = _dibujo_datos(ejes, ys, _real, "distancias")
+    haz = _haz(ejes).set_z_index(1)
+    haz.add_updater(lambda m: m.set_x(ejes.c2p(barrido.get_value(), 0)[0]))
 
-    tubo = _tubo(X_TERMO, Y_PIE_TERMO, ANCHO_TERMO, ALTO_TERMO)
-    rotulo_termo = texto("error", 20, color=ROJO).next_to(tubo, UP, buff=0.24)
-    nivel = _liquido(X_TERMO, Y_PIE_TERMO, ANCHO_TERMO, ALTO_TERMO, LLENO)
-
-    # --- Pantalla 2: el MSE, con los errores como cuadrados ----------------
-    mse = MathTex(
-        r"L_{\mathrm{MSE}}", "=", r"\frac{1}{n}\sum",
-        r"(", "y", "-", r"\hat{y}", ")^2",
-    ).scale(1.1).move_to([0, Y_FORMULA, 0])
-    mse[0].set_color(ROJO)
-    mse[4].set_color(CLARO)
-    mse[6].set_color(PRIMARIO)
-    leyenda_mse = _leyenda((
-        ("y", CLARO, "lo que era de verdad"),
-        (r"\hat{y}", PRIMARIO, "lo que dijo el modelo"),
-        ("n", SECUNDARIO, "cuántos ejemplos hay"),
+    panel = _panel()
+    valor = DecimalNumber(0, num_decimal_places=2, font_size=64, color=ROJO)
+    valor.move_to([X_LECTURA, Y_VALOR, 0])
+    valor.add_updater(lambda m: m.set_value(error_actual()))
+    tubo = _error.tubo(X_TERMO, Y_PIE_TERMO, ANCHO_TERMO, ALTO_TERMO)
+    rotulo_termo = texto("error", 16, color=ROJO).next_to(tubo, UP, buff=0.18)
+    nivel = always_redraw(lambda: _error.liquido(
+        X_TERMO, Y_PIE_TERMO, ANCHO_TERMO, ALTO_TERMO,
+        _error.LLENO * error_actual() / tope,
     ))
-    pie_mse = texto("para regresión", 21, color=SECUNDARIO)
-    pie_mse.move_to([0, Y_PIE, 0])
+    estado = _estado("en espera", SECUNDARIO)
 
-    ejes_mse = _ejes_datos(
-        CENTRO_GRAFICA_APOYO, ANCHO_GRAFICA_APOYO, ALTO_GRAFICA_APOYO,
-    )
-    puntos_mse, curva_mse_mala, cuad_mala = _dibujo_datos(
-        ejes_mse, ys, _mala, "cuadrados", radio=0.055, grosor=2.6,
-    )
-    _, curva_mse_buena, cuad_buena = _dibujo_datos(
-        ejes_mse, ys, _real, "cuadrados", radio=0.055, grosor=2.6,
-    )
-    tubo_mse = _tubo(X_TERMO_APOYO, Y_PIE_TERMO_APOYO,
-                     ANCHO_TERMO_APOYO, ALTO_TERMO_APOYO)
-    rotulo_mse = texto("error", 17, color=ROJO).next_to(tubo_mse, UP, buff=0.2)
-    nivel_mse = _liquido(X_TERMO_APOYO, Y_PIE_TERMO_APOYO,
-                         ANCHO_TERMO_APOYO, ALTO_TERMO_APOYO, LLENO)
-
-    # --- Pantalla 3: la BCE, con el mismo gesto ----------------------------
-    bce = MathTex(
-        r"L_{\mathrm{BCE}}", "=", "-", r"\big[", "y", r"\log(", r"\hat{y}", ")",
-        "+", "(1-", "y", r")\log(1-", r"\hat{y}", r")\big]",
-    ).scale(0.85).move_to([0, Y_FORMULA, 0])
-    for i in (0, 2):
-        bce[i].set_color(ROJO)
-    for i in (4, 10):
-        bce[i].set_color(CLARO)
-    for i in (6, 12):
-        bce[i].set_color(PRIMARIO)
-    leyenda_bce = _leyenda((
-        ("y", CLARO, "0 o 1: la respuesta correcta"),
-        (r"\hat{y}", PRIMARIO, "la probabilidad del modelo"),
-    ))
-    pie_bce = texto("para clasificación", 21, color=SECUNDARIO)
-    pie_bce.move_to([0, Y_PIE, 0])
-
-    ejes_bce, curva_bce = _ejes_log(
-        CENTRO_GRAFICA_APOYO, ANCHO_GRAFICA_APOYO, ALTO_GRAFICA_APOYO,
-    )
-    marca_mala = _marca_log(ejes_bce[0], P_MALA, ROJO)
-    marca_buena = _marca_log(ejes_bce[0], P_BUENA, VERDE)
-    tubo_bce = _tubo(X_TERMO_APOYO, Y_PIE_TERMO_APOYO,
-                     ANCHO_TERMO_APOYO, ALTO_TERMO_APOYO)
-    rotulo_bce = texto("error", 17, color=ROJO).next_to(tubo_bce, UP, buff=0.2)
-    nivel_bce = _liquido(X_TERMO_APOYO, Y_PIE_TERMO_APOYO,
-                         ANCHO_TERMO_APOYO, ALTO_TERMO_APOYO, LLENO, ROJO)
-    nivel_bce_bajo = _liquido(
-        X_TERMO_APOYO, Y_PIE_TERMO_APOYO, ANCHO_TERMO_APOYO, ALTO_TERMO_APOYO,
-        LLENO * float(np.log(P_BUENA) / np.log(P_MALA)), VERDE,
-    )
-
-    # ---------------------- Animación --------------------------------------
     scene.play(FadeIn(encabezado, shift=DOWN * 0.2), run_time=0.6)
-
-    # 1. Unos datos que no son una recta, y un modelo que lo hace mal.
     scene.play(Create(ejes), run_time=0.7)
     scene.play(
         LaggedStart(*[FadeIn(p, scale=0.5) for p in puntos], lag_ratio=0.08),
         run_time=0.9,
     )
-    scene.play(Create(tubo), FadeIn(rotulo_termo), run_time=0.6)
-    scene.play(Create(curva_mala), run_time=0.8)
+    scene.play(Create(curva), run_time=0.8)
     scene.play(
-        LaggedStart(*[Create(d) for d in dist_mala], lag_ratio=0.1),
-        FadeIn(nivel),
-        run_time=1.1,
-    )
-    scene.next_slide()
-
-    # Y uno que lo hace bien: mismos datos, otro modelo, y el termómetro baja.
-    scene.play(
-        Transform(curva_mala, curva_buena),
-        Transform(dist_mala, dist_buena),
-        Transform(nivel, _liquido(X_TERMO, Y_PIE_TERMO, ANCHO_TERMO,
-                                  ALTO_TERMO, LLENO * proporcion)),
-        run_time=1.5,
-    )
-    scene.next_slide()
-
-    # 2. El MSE. Mismo gesto: primero el error alto, luego el bajo.
-    scene.play(
-        FadeOut(ejes), FadeOut(puntos), FadeOut(curva_mala),
-        FadeOut(dist_mala), FadeOut(tubo), FadeOut(rotulo_termo),
-        FadeOut(nivel),
+        FadeIn(panel), FadeIn(valor), FadeIn(tubo), FadeIn(rotulo_termo),
+        FadeIn(estado),
         run_time=0.8,
     )
-    scene.play(FadeIn(pie_mse), FadeIn(mse, shift=UP * 0.12), run_time=1.0)
-    scene.play(
-        LaggedStart(*[FadeIn(f, shift=RIGHT * 0.15) for f in leyenda_mse],
-                    lag_ratio=0.18),
-        FadeIn(VGroup(ejes_mse, puntos_mse, curva_mse_mala, tubo_mse,
-                      rotulo_mse)),
-        run_time=1.2,
-    )
-    scene.play(
-        LaggedStart(*[FadeIn(c, scale=0.4) for c in cuad_mala],
-                    lag_ratio=0.12),
-        FadeIn(nivel_mse),
-        run_time=1.0,
-    )
+    scene.add(nivel)
     scene.next_slide()
 
-    scene.play(
-        Transform(curva_mse_mala, curva_mse_buena),
-        Transform(cuad_mala, cuad_buena),
-        Transform(nivel_mse, _liquido(
-            X_TERMO_APOYO, Y_PIE_TERMO_APOYO, ANCHO_TERMO_APOYO,
-            ALTO_TERMO_APOYO, LLENO * proporcion,
-        )),
-        run_time=1.4,
-    )
+    _seguir_puntos(puntos, barrido)
+    _seguir_distancias(dist_mala, barrido)
+    scene.add(dist_mala)
+    estado = _escanear(scene, barrido, haz, estado, valor)
     scene.next_slide()
 
-    # 3. La BCE, montada igual. El pie entra y sale, no se transforma: entre dos
-    # textos de distinto largo el morfeo de letras sale ilegible.
+    espera = _estado("en espera", SECUNDARIO)
     scene.play(
-        FadeOut(mse), FadeOut(leyenda_mse), FadeOut(pie_mse),
-        FadeOut(VGroup(ejes_mse, puntos_mse, curva_mse_mala, cuad_mala,
-                       tubo_mse, rotulo_mse, nivel_mse)),
-        FadeIn(pie_bce, shift=DOWN * 0.1),
-        run_time=0.8,
+        barrido.animate(rate_func=smooth).set_value(INICIO_BARRIDO),
+        *_cambiar(estado, espera),
+        run_time=0.9,
     )
-    scene.play(FadeIn(bce, shift=UP * 0.12), run_time=1.0)
-    scene.play(
-        LaggedStart(*[FadeIn(f, shift=RIGHT * 0.15) for f in leyenda_bce],
-                    lag_ratio=0.18),
-        FadeIn(ejes_bce), FadeIn(tubo_bce), FadeIn(rotulo_bce),
-        run_time=1.1,
-    )
-    scene.play(Create(curva_bce), run_time=0.9)
-    scene.play(FadeIn(marca_mala), FadeIn(nivel_bce), run_time=0.9)
-    scene.next_slide()
-
-    # Acertar con seguridad: el mismo dibujo, y el termómetro se vacía.
-    scene.play(
-        Transform(marca_mala, marca_buena),
-        Transform(nivel_bce, nivel_bce_bajo),
-        run_time=1.4,
-    )
-    scene.wait(0.4)
-
+    dist_mala.clear_updaters()
+    scene.remove(dist_mala)
+    lectura["cuadrados"] = _cuadrados(ys, _error.real)
+    _seguir_distancias(dist_buena, barrido)
+    scene.add(dist_buena)
+    scene.play(Transform(curva, curva_buena), run_time=1.2)
+    _escanear(scene, barrido, haz, espera, valor)
     scene.next_slide()

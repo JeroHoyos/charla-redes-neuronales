@@ -1,15 +1,3 @@
-"""Diapositiva 2 — ¿Por qué importan las redes neuronales?
-
-Arranca con la pregunta a pantalla completa; esa misma pregunta sube y hace de
-encabezado. Después, cada ejemplo cotidiano (recomendación, visión y lenguaje)
-entra GRANDE con su imagen de ``assets``, se presenta, y al avanzar se encoge
-hasta su sitio en la fila de arriba: el diagrama se va construyendo con las
-piezas que el público acaba de ver de cerca.
-
-Cierra conectando las tres a una misma caja: las redes neuronales, el tema del
-resto de la charla.
-"""
-
 import numpy as np
 from manim import (
     BOLD,
@@ -33,34 +21,28 @@ from manim import (
 from componentes import enmarcar, imagen, texto
 from estilo import AMBAR, CLARO, FONDO, MORADO, PRIMARIO, SECUNDARIO, VERDE
 
-# (archivo en assets, categoría, ejemplo concreto, color de la categoría)
 EJEMPLOS = (
     ("youtube.jpg", "Sistemas de recomendación", "YouTube, Spotify", AMBAR),
     ("reconocimiento_facial.png", "Visión artificial", "desbloquear el celular", VERDE),
     ("chatgpt_claude.jpg", "LLMs", "ChatGPT, Claude", MORADO),
 )
 
-ANCHO_GRANDE = 4.8     # tarjeta mientras se presenta el ejemplo
+ANCHO_GRANDE = 4.8
 ALTO_GRANDE = 2.74
-MARGEN = 0.22          # aire entre la imagen y su marco
-ESCALA_CHICA = 0.62    # de tarjeta grande a pieza del diagrama
+MARGEN = 0.22
+ESCALA_CHICA = 0.62
 Y_GRANDE = -0.8
-Y_FILA = 1.95          # fila de tarjetas ya colocadas
+Y_FILA = 1.95
 X_FILA = (-3.7, 0.0, 3.7)
-ANCHO_ROTULO = 3.35    # tope del rótulo bajo cada tarjeta (que no se toquen)
+ANCHO_ROTULO = 3.35
 Y_CAJA = -1.72
 
-CAPAS = (2, 4, 4, 2)   # entrada, dos capas profundas y salida
+CAPAS = (2, 4, 4, 2)
 ANCHO_RED = 3.6
 ALTO_RED = 1.6
 
 
 def _tarjeta(archivo, color):
-    """Imagen de ``assets`` encajada en un marco del color de su categoría.
-
-    El marco va relleno del color de fondo (no transparente) para que la malla
-    decorativa no se cuele por detrás de la imagen.
-    """
     marco = RoundedRectangle(
         width=ANCHO_GRANDE, height=ALTO_GRANDE, corner_radius=0.18,
         stroke_color=color, stroke_width=4,
@@ -74,13 +56,6 @@ def _tarjeta(archivo, color):
 
 
 def _mini_red():
-    """Esquema de red neuronal según ``CAPAS``, centrado en el origen.
-
-    Devuelve ``(tramos, capas)``: las conexiones agrupadas por tramo entre capas
-    y los nodos agrupados por capa, que es lo que hace falta para propagar la
-    señal capa a capa. El paso vertical es común a todas las capas —se reparte
-    según la más poblada— así que las cortas quedan centradas, no estiradas.
-    """
     paso = ALTO_RED / (max(CAPAS) - 1)
     columnas = []
     for i, n in enumerate(CAPAS):
@@ -105,15 +80,11 @@ def _mini_red():
 
 
 def construir(scene):
-    # --- La pregunta abre la diapositiva y luego se convierte en encabezado --
     pregunta = texto("¿Dónde has visto una red neuronal hoy?", 34, color=CLARO)
     scene.play(FadeIn(pregunta, shift=UP * 0.2), run_time=0.8)
     scene.next_slide()
     scene.play(pregunta.animate.scale(0.72).to_edge(UP, buff=0.5), run_time=0.8)
 
-    # Los tres rótulos se escalan a la vez, según el más ancho: así ninguno
-    # invade la columna vecina y los tres conservan el mismo tamaño visual.
-    # (Bajar ``font_size`` no serviría: apenas cambia el ancho del texto.)
     rotulos = VGroup(*[
         texto(categoria, 20, color=color, weight=BOLD)
         for _, categoria, _, color in EJEMPLOS
@@ -122,7 +93,6 @@ def construir(scene):
     if ancho_max > ANCHO_ROTULO:
         rotulos.scale(ANCHO_ROTULO / ancho_max)
 
-    # --- Cada ejemplo: primero grande, después pieza del diagrama -----------
     tarjetas = []
     for (archivo, categoria, ejemplo, color), x, rotulo in zip(EJEMPLOS, X_FILA, rotulos):
         tarjeta = _tarjeta(archivo, color).move_to([0, Y_GRANDE, 0])
@@ -137,9 +107,6 @@ def construir(scene):
         scene.play(FadeIn(pie, shift=UP * 0.12), run_time=0.4)
         scene.next_slide()
 
-        # Se encoge hasta su hueco: la pieza del diagrama es la misma tarjeta.
-        # El rótulo cuelga del borde inferior de la tarjeta (no se centra en un
-        # punto): así "Chat bots", con descendentes, no queda más alto que el resto.
         rotulo.next_to([x, Y_FILA - ALTO_GRANDE * ESCALA_CHICA / 2, 0], DOWN, buff=0.28)
         scene.play(
             tarjeta.animate.scale(ESCALA_CHICA).move_to([x, Y_FILA, 0]),
@@ -151,19 +118,13 @@ def construir(scene):
 
     scene.next_slide()
 
-    # --- Las tres bajan a la misma caja -------------------------------------
-    # Dentro de la caja va el esquema —lo que la charla va a desarmar— con su
-    # nombre debajo. Se monta centrado en el origen y se coloca ya montado, así
-    # las líneas y los nodos quedan en su sitio definitivo para las animaciones.
     tramos, capas = _mini_red()
     etiqueta = texto("REDES NEURONALES", 22, color=PRIMARIO, weight=BOLD)
     contenido = VGroup(VGroup(tramos, capas), etiqueta).arrange(DOWN, buff=0.28)
     contenido.move_to([0, Y_CAJA, 0])
     caja_negra = enmarcar(contenido, margen=0.5)
 
-    anclas = (-0.62, 0.0, 0.62)  # fracción del semiancho de la caja
-    # Todas arrancan a la misma altura (la del rótulo que baja más), no del pie
-    # de cada texto: si no, las tres líneas empezarían desalineadas.
+    anclas = (-0.62, 0.0, 0.62)
     y_salida = rotulos.get_bottom()[1] - 0.12
     conexiones = VGroup()
     for x, ancla, (*_, color) in zip(X_FILA, anclas, EJEMPLOS):
@@ -205,12 +166,6 @@ def construir(scene):
 
     scene.next_slide()
 
-    # --- El cómputo de un LLM es, casi todo, una red feed-forward -----------
-    # Remate del "por qué importan": en los modelos de lenguaje, la mayor parte
-    # del cómputo —la columna FFN de esta tabla, que trepa del 44% al 80%
-    # conforme el modelo crece— es una red feed-forward, la misma pieza que la
-    # charla desarma después. Se retira todo lo anterior —diagrama y encabezado—
-    # y se resalta esa columna para que el dato no pase de largo.
     diagrama = Group(pregunta, rotulos, contenido, caja_negra, conexiones, *tarjetas)
     scene.play(FadeOut(diagrama), run_time=0.5)
 
@@ -220,9 +175,6 @@ def construir(scene):
     scene.play(FadeIn(tabla), Create(marco_tabla), run_time=0.7)
     scene.wait(0.5)
 
-    # La columna "% FLOPS FFN" ocupa la fracción [0.633, 0.760] del ancho de la
-    # imagen (medido sobre el propio asset): de ahí salen sus bordes en
-    # coordenadas de escena, sin números mágicos si cambia la escala de la tabla.
     F0, F1 = 0.633, 0.760
     izq = tabla.get_left()[0]
     x0, x1 = izq + F0 * tabla.width, izq + F1 * tabla.width
@@ -232,7 +184,6 @@ def construir(scene):
         fill_color=MORADO, fill_opacity=0.14,
     ).move_to([(x0 + x1) / 2, tabla.get_center()[1], 0])
 
-    # Debajo de la tabla, el crédito de la fuente (en gris, discreto).
     fuente = texto(
         "Fuente: Stephen Roller, ex Senior Staff Research Scientist "
         "en Google DeepMind",

@@ -1,10 +1,3 @@
-"""Piezas compartidas por las diapositivas de biología (10 y 11).
-
-No es una diapositiva: no expone ``construir``. Aquí vive la bicapa lipídica y
-los iones, que se dibujan igual en las dos para que la transición entre ellas
-sea continua.
-"""
-
 import numpy as np
 from manim import (
     Dot,
@@ -21,26 +14,15 @@ from estilo import FONDO, SECUNDARIO
 X_IZQ = -6.2
 X_DER = 6.2
 Y_MEMBRANA = 0.0
-ALTO_CABEZA = 0.30      # separación de cada fila de cabezas al centro
+ALTO_CABEZA = 0.30
 RADIO_CABEZA = 0.115
 
 
 def bicapa(y=Y_MEMBRANA, x_izq=X_IZQ, x_der=X_DER, n=None):
-    """Bicapa lipídica: dos filas de fosfolípidos y su núcleo hidrófobo.
-
-    Los extremos son parámetros porque la membrana no siempre ocupa el ancho
-    entero: cuando va dentro de un panel de zoom hay que recortarla ahí. Si no
-    se dice cuántas cabezas, se calculan para que queden **tocándose**: con
-    hueco entre ellas la membrana parece una valla, no una superficie.
-
-    Cada lípido lleva sus dos colas abiertas, que es lo que lo hace reconocible
-    a simple vista.
-    """
     if n is None:
         n = max(2, int((x_der - x_izq) / (2 * RADIO_CABEZA)) + 1)
     xs = np.linspace(x_izq, x_der, n)
 
-    # El interior grasiento, insinuado: da cuerpo y une las dos filas.
     nucleo = Rectangle(
         width=x_der - x_izq + 2 * RADIO_CABEZA, height=2 * ALTO_CABEZA,
         stroke_width=0,
@@ -63,7 +45,6 @@ def bicapa(y=Y_MEMBRANA, x_izq=X_IZQ, x_der=X_DER, n=None):
 
 
 def ion(carga, posicion, color, radio=0.17, tam=18):
-    """Ion: círculo con lo que lleve dentro (un signo, o "Na" / "K")."""
     disco = Dot(posicion, radius=radio, color=color, fill_opacity=0.28)
     borde = Dot(posicion, radius=radio, color=color, fill_opacity=0)
     borde.set_stroke(color=color, width=2.5)
@@ -71,18 +52,11 @@ def ion(carga, posicion, color, radio=0.17, tam=18):
     return VGroup(disco, borde, etiqueta)
 
 
-ANCHO_MITAD = 0.3       # cada hoja de la compuerta
-ALTO_CANAL = 2 * ALTO_CABEZA + 0.44   # asoma un poco por los dos lados
+ANCHO_MITAD = 0.3
+ALTO_CANAL = 2 * ALTO_CABEZA + 0.44
 
 
 def canal(x, color, y=Y_MEMBRANA, abertura=0.0):
-    """Canal iónico incrustado en la membrana.
-
-    Las dos mitades cierran a tope —con la separación de antes quedaba un canal
-    entreabierto hasta estando "cerrado"— y ``abertura`` es lo que se apartan.
-    Alto justo para atravesar la bicapa y asomar a los dos lados: así se ve
-    metido en ella y no posado encima.
-    """
     mitades = VGroup()
     for signo in (-1, 1):
         mitad = RoundedRectangle(
@@ -96,12 +70,10 @@ def canal(x, color, y=Y_MEMBRANA, abertura=0.0):
 
 
 def voltimetro(valor, color, posicion):
-    """Etiqueta de voltaje de membrana."""
     return texto(valor, 26, color=color).move_to(posicion)
 
 
 def trazo_suave(puntos, color, grosor=4):
-    """Curva suave que pasa por una lista de puntos."""
     curva = VMobject(color=color, stroke_width=grosor)
     curva.set_points_smoothly([np.array(p) for p in puntos])
     return curva

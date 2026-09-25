@@ -1,18 +1,3 @@
-"""Diapositiva 3 — ¿Cómo aprendemos nosotros?
-
-Sin explicaciones: se ve. Alguien lanza una bola hacia su otra mano y falla. Ve
-por cuánto ha fallado —la distancia queda marcada en el suelo—, vuelve a tirar y
-falla menos. Y menos. Hasta que la coge. Entonces saca las otras dos y hace la
-cascada entera.
-
-Toda la idea de la charla está aquí en gestos: intentar, mirar el error,
-corregir, repetir. Cuando lleguemos a la función de pérdida y al descenso del
-gradiente, será esta misma diapositiva con números.
-
-Va antes de "No es una idea nueva" para que, cuando aparezca Rosenblatt, ya se
-entienda qué estaba intentando imitar.
-"""
-
 import numpy as np
 from manim import (
     DOWN,
@@ -48,45 +33,34 @@ from estilo import AMBAR, CLARO, FONDO, MORADO, PRIMARIO, SECUNDARIO, VERDE
 
 X_FIG = 0.0
 Y_SUELO = -2.5
-ESCALA = 1.32          # tamaño del malabarista (todo lo demás lo sigue)
-ALTO_MANO = 1.5        # altura de las manos, antes de escalar
-SEP_MANO = 1.0         # separación de cada mano al eje del cuerpo, sin escalar
+ESCALA = 1.32
+ALTO_MANO = 1.5
+SEP_MANO = 1.0
 RADIO_BOLA = 0.16
-CIMA = 2.15            # vértice de los lanzamientos largos (los que fallan)
-# Vértice de los lanzamientos de mano a mano. Tiene que quedar por debajo de la
-# anchura del tiro: si el arco sube más de lo que cruza, las bolas parecen subir
-# y bajar en vertical en vez de dibujar la cascada.
+CIMA = 2.15
 CIMA_CASCADA = 1.05
 
-# Ritmo de la cascada. ``INTERVALO`` es cada cuánto sale una bola de la mano;
-# con tres bolas, cada una lanza cada ``3 * INTERVALO``, así que el vuelo tiene
-# que caber ahí dentro y lo que sobra es el tiempo que descansa en la mano.
 VUELO = 0.8
 INTERVALO = 0.42
-CICLOS = 4             # lanzamientos por bola
+CICLOS = 4
 
-# Por cuánto falla en cada intento (a la izquierda de la mano que espera).
-# El cuarto intento es acertar: la secuencia entera es el aprendizaje.
 DESVIOS = (2.1, 1.15, 0.5)
 
-Y_MARCAS = -3.35       # fila de ✗ / ✓, debajo del suelo
+Y_MARCAS = -3.35
 PASO_MARCAS = 0.46
 
 ANCLA = np.array([X_FIG, Y_SUELO, 0.0])
 
 
 def _escalar(punto):
-    """Lleva un punto de las proporciones base al tamaño final de la figura."""
     return ANCLA + (np.array(punto) - ANCLA) * ESCALA
 
 
 def _mano(signo):
-    """Posición de una mano: ``-1`` la izquierda, ``+1`` la derecha."""
     return _escalar([X_FIG + signo * SEP_MANO, Y_SUELO + ALTO_MANO, 0.0])
 
 
 def _curva(puntos, color=CLARO, grosor=5):
-    """Trazo suave que pasa por los puntos dados, con las puntas redondeadas."""
     curva = VMobject(color=color, stroke_width=grosor)
     curva.set_points_smoothly([np.array(p) for p in puntos])
     curva.cap_style = CapStyleType.ROUND
@@ -94,11 +68,6 @@ def _curva(puntos, color=CLARO, grosor=5):
 
 
 def _figura():
-    """El malabarista: trazos curvos, cabeza hueca y sombra en el suelo.
-
-    Se dibuja en proporciones base y se escala al final desde los pies, que es
-    lo que mantiene coherentes las posiciones que devuelve ``_mano``.
-    """
     cadera = np.array([X_FIG, Y_SUELO + 1.05, 0.0])
     hombros = np.array([X_FIG, Y_SUELO + 1.95, 0.0])
 
@@ -106,7 +75,6 @@ def _figura():
     cabeza.move_to([X_FIG, Y_SUELO + 2.36, 0])
     cuello = Line(hombros, [X_FIG, Y_SUELO + 2.06, 0], color=CLARO, stroke_width=5)
 
-    # Tronco y piernas con una curvatura mínima: quita rigidez de palo.
     tronco = _curva([hombros, [X_FIG - 0.05, Y_SUELO + 1.5, 0], cadera])
     piernas = VGroup(*[
         _curva([
@@ -134,7 +102,6 @@ def _figura():
 
 
 def _bola(color, posicion):
-    """Bola de cristal: halos concentrados, núcleo sólido y un brillo arriba."""
     halos = VGroup(*[
         Circle(radius=RADIO_BOLA * factor, color=color, stroke_width=0)
         .set_fill(color, opacity=opacidad)
@@ -147,13 +114,6 @@ def _bola(color, posicion):
 
 
 def _lanzamiento(bola, inicio, fin, cima=CIMA, **kwargs):
-    """Vuelo de una bola: parábola real, con su gravedad.
-
-    Mover la bola por un arco a velocidad constante la hace flotar arriba y
-    frenar en seco al llegar. Aquí la horizontal avanza a ritmo fijo y la
-    vertical es cuadrática en el tiempo, que es exactamente caída libre: sale
-    rápida de la mano, se demora en el vértice y vuelve a acelerar al caer.
-    """
     inicio, fin = np.array(inicio, dtype=float), np.array(fin, dtype=float)
     curvatura = 4 * (cima - (inicio[1] + fin[1]) / 2)
 
@@ -167,7 +127,6 @@ def _lanzamiento(bola, inicio, fin, cima=CIMA, **kwargs):
 
 
 def _rastro(bola, color):
-    """Estela que sigue a la bola y se va borrando sola."""
     return TracedPath(
         bola.get_center, stroke_color=color, stroke_width=4,
         stroke_opacity=0.75, dissipating_time=0.5,
@@ -175,12 +134,6 @@ def _rastro(bola, color):
 
 
 def _panel_zoom(centro, radio):
-    """Círculo de aumento: cristal opaco, aro de marca y halo alrededor.
-
-    Nada de lupa con mango; es una ventana al interior. El relleno va del color
-    de fondo para que tape lo que haya debajo y dentro solo se vea lo que
-    pongamos después.
-    """
     halo = VGroup(*[
         Circle(radius=radio + separacion, color=PRIMARIO, stroke_width=grosor)
         .set_stroke(opacity=opacidad).move_to(centro)
@@ -192,7 +145,6 @@ def _panel_zoom(centro, radio):
 
 
 def _mira(centro, radio):
-    """Cuatro esquinas de encuadre alrededor de la cabeza."""
     brazo = radio * 0.55
     esquinas = VGroup()
     for lado_x in (-1, 1):
@@ -208,12 +160,6 @@ def _mira(centro, radio):
 
 
 def _barrido(centro, radio):
-    """Línea de escáner con su resplandor, lista para recorrer la cabeza.
-
-    Devuelve el grupo y la función que lo coloca según el avance: el ancho de
-    la línea se recorta a la cuerda del círculo a esa altura, así el barrido
-    queda ceñido a la cabeza en vez de ser una raya que la cruza.
-    """
     barra = VGroup(
         Line(centro, centro + np.array([0.01, 0, 0]),
              color=PRIMARIO, stroke_width=14).set_stroke(opacity=0.22),
@@ -235,7 +181,6 @@ def _barrido(centro, radio):
 
 
 def _haz(origen, radio_origen, destino, radio_destino):
-    """Cono de aumento entre la cabeza y el panel, como un haz de luz."""
     eje = destino - origen
     perpendicular = np.array([-eje[1], eje[0], 0.0]) / np.linalg.norm(eje)
     a, b = (origen + perpendicular * radio_origen,
@@ -252,12 +197,6 @@ def _haz(origen, radio_origen, destino, radio_destino):
 
 
 def _tejido(centro, radio, cantidad=26, semilla=11):
-    """Maraña densa de neuronas: somas con halo y la red que las une.
-
-    Devuelve ``(malla, somas, conexiones)``; las conexiones sueltas sirven para
-    mandar impulsos por ellas. Las posiciones se reparten con rechazo simple
-    para que ninguna quede pegada a otra.
-    """
     rng = np.random.default_rng(semilla)
     util = radio - 0.4
     puntos = []
@@ -285,7 +224,6 @@ def _tejido(centro, radio, cantidad=26, semilla=11):
     for punto in puntos:
         halo = Circle(radius=0.13, color=PRIMARIO, stroke_width=0)
         halo.set_fill(PRIMARIO, opacity=0.13).move_to(punto)
-        # Dos o tres muñones cortos: dan textura de neurona sin ensuciar la red.
         muñones = VGroup(*[
             Line(punto, punto + np.array([np.cos(a) * 0.17, np.sin(a) * 0.17, 0]),
                  color=PRIMARIO, stroke_width=2).set_stroke(opacity=0.55)
@@ -313,17 +251,11 @@ def _tick(color=VERDE):
 
 
 def _sitio_marca(indice):
-    """Hueco de la marca nº ``indice`` en una fila centrada bajo la figura."""
     total = len(DESVIOS) + 1
     return [X_FIG + (indice - (total - 1) / 2) * PASO_MARCAS, Y_MARCAS, 0]
 
 
 def _impulso(scene, figura):
-    """Flexión mínima del cuerpo justo antes de lanzar: da vida al muñeco.
-
-    Nada por debajo de ~0.25 s: un ``play`` de dos fotogramas hace fallar el
-    concatenado de manim-slides (``ArgumentError`` al muxear).
-    """
     scene.play(figura.animate.shift(DOWN * 0.09), run_time=0.3,
                rate_func=there_and_back)
 
@@ -336,8 +268,6 @@ def construir(scene):
         [X_FIG - 5.2, Y_SUELO, 0], [X_FIG + 5.2, Y_SUELO, 0],
         color=SECUNDARIO, stroke_width=2, stroke_opacity=0.4,
     )
-    # Dónde tiene que caer la bola, y esa altura bajada al suelo: sin la guía
-    # vertical, la marca de error parecería medir hasta ningún sitio.
     diana = Circle(radius=0.22, color=SECUNDARIO, stroke_width=2.5)
     diana.set_stroke(opacity=0.55).move_to(_mano(-1))
     guia = DashedLine(
@@ -352,12 +282,10 @@ def construir(scene):
     scene.play(GrowFromCenter(bola), FadeIn(diana), FadeIn(guia), run_time=0.5)
     scene.next_slide()
 
-    # --- Fallar, ver por cuánto, y volver a tirar --------------------------
     for intento, desvio in enumerate(DESVIOS):
         rastro = _rastro(bola, PRIMARIO)
         scene.add(rastro)
 
-        # Se queda corta: cae al suelo a ``desvio`` de la mano que esperaba.
         caida = np.array([_mano(-1)[0] - desvio, Y_SUELO + RADIO_BOLA, 0.0])
         _impulso(scene, figura)
         scene.play(_lanzamiento(bola, _mano(1), caida), run_time=0.95)
@@ -365,7 +293,6 @@ def construir(scene):
                    rate_func=there_and_back)
         scene.remove(rastro)
 
-        # Lo que se ve es el error: lo que le ha faltado para llegar a la mano.
         error = DashedLine(
             [caida[0], Y_SUELO + 0.08, 0], [_mano(-1)[0], Y_SUELO + 0.08, 0],
             color=AMBAR, stroke_width=3.5, dash_length=0.11,
@@ -375,13 +302,11 @@ def construir(scene):
                    Indicate(diana, color=AMBAR, scale_factor=1.3), run_time=0.5)
         scene.next_slide()
 
-        # Corrige y vuelve a empezar: recoge la bola con un arco bajo.
         scene.play(
             _lanzamiento(bola, caida, _mano(1), Y_SUELO + 1.15),
             FadeOut(error), run_time=0.6,
         )
 
-    # --- Ahora sí: la bola cae en la mano ----------------------------------
     rastro = _rastro(bola, PRIMARIO)
     scene.add(rastro)
     _impulso(scene, figura)
@@ -399,7 +324,6 @@ def construir(scene):
     )
     scene.next_slide()
 
-    # --- Y con el gesto aprendido, las tres --------------------------------
     otras = VGroup(
         _bola(AMBAR, _mano(1) + np.array([0.19, -0.03, 0])),
         _bola(MORADO, _mano(-1) + np.array([-0.17, 0.03, 0])),
@@ -411,17 +335,10 @@ def construir(scene):
     rastros = [_rastro(b, c) for b, c in zip(bolas, colores)]
     scene.add(*rastros)
 
-    # Cascada: una secuencia por bola, lanzadas en paralelo y desfasadas.
-    #
-    # No vale meter los doce lanzamientos en un LaggedStart: al arrancar, el
-    # grupo hace ``begin()`` de todos a la vez y cada ``begin()`` planta su bola
-    # en el punto de salida de ese lanzamiento, así que manda el último y las
-    # bolas aparecen en la mano equivocada para luego saltar de golpe. Con una
-    # Succession por bola solo está viva una animación de esa bola a la vez.
     huecos = [_mano(-1), _mano(1) + np.array([0.19, -0.03, 0]),
               _mano(-1) + np.array([-0.17, 0.03, 0])]
     signos = [-1, 1, -1]
-    espera = 3 * INTERVALO - VUELO  # lo que la bola descansa en la mano
+    espera = 3 * INTERVALO - VUELO
 
     secuencias = []
     for i, bola_i in enumerate(bolas):
@@ -429,8 +346,6 @@ def construir(scene):
         actual, signo = huecos[i], signos[i]
         for ciclo in range(CICLOS):
             signo *= -1
-            # Cada bola aterriza con su propio sesgo: si no, dos caen en el
-            # mismo punto de la mano y una tapa a la otra.
             destino = _mano(signo) + np.array([(i - 1) * 0.15, 0.07 - i * 0.05, 0])
             partes.append(_lanzamiento(
                 bola_i, actual, destino, CIMA_CASCADA + i * 0.09, run_time=VUELO,
@@ -442,15 +357,10 @@ def construir(scene):
 
     _impulso(scene, figura)
     scene.play(*secuencias)
-    # Las estelas se apagan solas; darles ese medio segundo evita el corte seco.
     scene.wait(0.5)
     scene.remove(*rastros)
     scene.next_slide()
 
-    # --- ¿Y dónde ha quedado lo aprendido? ---------------------------------
-    # Se escanea la cabeza y una ventana de aumento se abre al lado —no encima,
-    # que taparía media figura— con lo que hay dentro: neuronas. Ni una palabra:
-    # es el puente a la parte biológica.
     centro_zoom = np.array([3.6, 0.85, 0.0])
     radio_zoom = 1.55
     cabeza = _escalar([X_FIG, Y_SUELO + 2.36, 0.0])
@@ -460,8 +370,6 @@ def construir(scene):
     panel = _panel_zoom(centro_zoom, radio_zoom)
     malla, somas, conexiones = _tejido(centro_zoom, radio_zoom)
 
-    # Primero se escanea la cabeza: encuadre, dos pasadas de la línea y un
-    # destello. De ahí sale el haz que abre la ventana.
     mira = _mira(cabeza, radio_cabeza * 1.55)
     barra, colocar_barra = _barrido(cabeza, radio_cabeza)
 
@@ -481,14 +389,12 @@ def construir(scene):
     )
 
     scene.play(FadeIn(haz), FadeIn(panel, scale=0.6), run_time=0.8)
-    # Lo que hay dentro: la maraña primero y encima los cuerpos, uno a uno.
     scene.play(FadeIn(malla, scale=0.82), run_time=0.9)
     scene.play(
         LaggedStart(*[FadeIn(s, scale=0.4) for s in somas], lag_ratio=0.04),
         run_time=1.4,
     )
 
-    # La red se enciende: impulsos sueltos recorriendo la maraña.
     rng = np.random.default_rng(5)
     for ronda in range(2):
         elegidas = rng.choice(len(conexiones), size=9, replace=False)

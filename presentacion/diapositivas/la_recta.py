@@ -1,22 +1,3 @@
-"""Diapositiva 7 — Del diagrama a las matemáticas: la recta.
-
-Dos columnas: a la izquierda el modelo escrito, a la derecha lo que ese modelo
-dibuja sobre los datos. El álgebra va creciendo y la gráfica va respondiendo.
-
-  1. Una entrada: ``ŷ = w x + b`` es, literalmente, la ecuación de una recta.
-     Debajo, la neurona que la calcula; a la derecha, la recta que dibuja.
-  2. n entradas y m muestras: la suma se contrae hasta ``Ŷ = X W + b``, con un
-     bloque por matriz y su forma debajo.
-  3. Más neuronas: dos capas lineales encadenadas, y el álgebra las colapsa en
-     ``X W' + b'``. Cambian los parámetros, gira la recta, pero sigue siendo
-     una recta.
-  4. Los puntos se curvan y ya ninguna recta los ajusta: los residuos en ámbar
-     lo dejan ver. Deja el terreno listo para "Falta algo".
-
-Código de color heredado de la 6: entradas en verde, pesos en cian, sesgo en
-morado, salida en ámbar.
-"""
-
 import numpy as np
 from manim import (
     DOWN,
@@ -46,32 +27,26 @@ from estilo import AMBAR, CLARO, FONDO, MORADO, PRIMARIO, SECUNDARIO, VERDE
 
 PENDIENTE = 0.5
 ORDENADA = 0.75
-VERTICE = 2.6        # centro de la parábola, en coordenadas de datos
-NIVEL_PLANO = 1.45   # mejor recta posible para la parábola: casi horizontal
-X_TRAZO = (0.15, 5.05)   # tramo de x donde se dibujan las rectas
+VERTICE = 2.6
+NIVEL_PLANO = 1.45
+X_TRAZO = (0.15, 5.05)
 
-# Columna derecha: lo que el modelo dibuja.
 CENTRO_GRAFICA = [3.75, -0.35, 0]
 
-# Columna izquierda: el modelo escrito.
 X_MATE = -3.5
-ANCHO_MATE = 6.2     # tope para que el álgebra no invada la gráfica
+ANCHO_MATE = 6.2
 
-# Bloques de la expresión matricial: una medida por dimensión, así los lados
-# que tienen que coincidir (las n de X y de W) coinciden también en pantalla.
-UNIDAD_M = 1.3       # m muestras
-UNIDAD_N = 0.95      # n entradas
-UNIDAD_1 = 0.42      # la única salida
+UNIDAD_M = 1.3
+UNIDAD_N = 0.95
+UNIDAD_1 = 0.42
 
-# Neurona de la primera pausa: una entrada, un peso, un sesgo y la salida.
 X_NEURONA = (-5.15, -3.5, -1.85)
 Y_NEURONA = -1.05
-Y_SESGO = -2.05          # el sesgo entra por debajo, como en la 6
+Y_SESGO = -2.05
 RADIO_NEURONA = 0.26
 RADIO_CUERPO = 0.44
 RADIO_SESGO = 0.18
 
-# Red compacta de la composición: entradas, capa oculta y salida.
 X_RED = (-4.85, -3.5, -2.15)
 TAMANOS_RED = (2, 3, 1)
 Y_RED = 1.85
@@ -80,7 +55,6 @@ RADIO_RED = 0.15
 
 
 def _datos():
-    """Los mismos puntos, primero alineados y después curvados."""
     rng = np.random.default_rng(11)
     xs = np.linspace(0.35, 4.85, 11)
     ruido = rng.normal(0, 0.14, xs.size)
@@ -90,22 +64,18 @@ def _datos():
 
 
 def _ajustar(mob, ancho=ANCHO_MATE):
-    """Encoge lo que se salga de la columna izquierda."""
     if mob.width > ancho:
         mob.scale(ancho / mob.width)
     return mob
 
 
 def _pintar(formula, colores):
-    """Colorea tokens sueltos de un ``MathTex`` por su índice."""
     for indice, color in colores:
         formula[indice].set_color(color)
     return formula
 
 
-# --- Columna izquierda: el modelo escrito ----------------------------------
 def _bloque(ancho, alto, etiqueta, color):
-    """Rectángulo con el nombre de la matriz dentro: la forma se ve de un vistazo."""
     caja = RoundedRectangle(
         width=ancho, height=alto, corner_radius=0.08,
         stroke_color=color, stroke_width=3,
@@ -118,12 +88,6 @@ def _bloque(ancho, alto, etiqueta, color):
 
 
 def _matricial():
-    """``Ŷ = X W + b`` dibujado como bloques, con la forma de cada matriz.
-
-    Las formas se cuelgan después de colocar la fila y todas a la misma
-    altura: los bloques tienen altos distintos, y si cada etiqueta colgara del
-    suyo la fila quedaría en escalera.
-    """
     salida = _bloque(UNIDAD_1, UNIDAD_M, r"\hat{Y}", AMBAR)
     entradas = _bloque(UNIDAD_N, UNIDAD_M, "X", VERDE)
     pesos = _bloque(UNIDAD_1, UNIDAD_N, "W", PRIMARIO)
@@ -147,11 +111,6 @@ def _matricial():
 
 
 def _composicion():
-    """Las tres líneas del colapso: dos capas lineales caben en una.
-
-    Devuelve también la última línea, que es la que se enmarca y la que la
-    diapositiva señala cuando los datos dejan de ser rectos.
-    """
     linea1 = _pintar(
         MathTex(r"\hat{Y}", "=", "(", "X", "W_1", "+", "b_1", ")",
                 "W_2", "+", "b_2"),
@@ -168,7 +127,6 @@ def _composicion():
     )
 
     bloque = VGroup(linea1, linea2, linea3).arrange(DOWN, buff=0.42).scale(0.85)
-    # Los "=" de las tres líneas, en la misma vertical.
     for linea in (linea2, linea3):
         linea.shift(
             RIGHT * (linea1[1].get_center()[0] - linea[0].get_center()[0])
@@ -177,14 +135,12 @@ def _composicion():
 
 
 def _nodo(centro, color, radio=RADIO_RED):
-    """Círculo relleno del fondo para que las aristas no se vean por debajo."""
     nodo = Circle(radius=radio, color=color, stroke_width=3)
     return nodo.set_fill(FONDO, opacity=1.0).move_to(centro)
 
 
 def _arista(origen, destino, radio_origen=RADIO_RED, radio_destino=RADIO_RED,
             color=SECUNDARIO, grosor=1.8):
-    """Conexión recortada en el borde de los dos nodos que une."""
     direccion = destino - origen
     direccion = direccion / np.linalg.norm(direccion)
     linea = Line(
@@ -195,7 +151,6 @@ def _arista(origen, destino, radio_origen=RADIO_RED, radio_destino=RADIO_RED,
 
 
 def _neurona_simple():
-    """La ecuación de arriba, dibujada: entrada por un peso, más el sesgo."""
     entrada, cuerpo, salida = [
         np.array([x, Y_NEURONA, 0.0]) for x in X_NEURONA
     ]
@@ -223,7 +178,6 @@ def _neurona_simple():
 
 
 def _red_compacta():
-    """Dos capas seguidas: la excusa para tener un W_1 y un W_2 que componer."""
     capas = [
         [np.array([x, Y_RED + (n - 1) / 2 * PASO_RED - k * PASO_RED, 0.0])
          for k in range(n)]
@@ -247,9 +201,7 @@ def _red_compacta():
     return VGroup(aristas, nodos, etiquetas)
 
 
-# --- Columna derecha: lo que el modelo dibuja ------------------------------
 def _recta(ejes, funcion, color):
-    """Recta con resplandor detrás: da cuerpo sin engordar el trazo."""
     resplandor = ejes.plot(funcion, x_range=X_TRAZO, color=color)
     resplandor.set_stroke(width=13, opacity=0.16)
     linea = ejes.plot(funcion, x_range=X_TRAZO, color=color)
@@ -258,7 +210,6 @@ def _recta(ejes, funcion, color):
 
 
 def _residuos(ejes, xs, ys, funcion):
-    """Segmentos verticales del punto a la recta: el error, hecho visible."""
     return VGroup(*[
         DashedLine(
             ejes.c2p(x, y), ejes.c2p(x, funcion(x)),
@@ -289,7 +240,6 @@ def construir(scene):
     def ajuste(x):
         return PENDIENTE * x + ORDENADA
 
-    # ---------------------- 1: una entrada, una recta -----------------------
     scene.play(FadeIn(encabezado, shift=DOWN * 0.2), run_time=0.6)
     scene.play(Create(ejes), run_time=0.8)
     scene.play(
@@ -303,7 +253,6 @@ def construir(scene):
     ).scale(1.35).move_to([X_MATE, 0.95, 0])
     scene.play(FadeIn(escalar, shift=UP * 0.15), run_time=0.6)
 
-    # La misma ecuación, dibujada: es una sola neurona.
     neurona = _neurona_simple()
     scene.play(FadeIn(neurona, scale=0.9), run_time=0.8)
 
@@ -311,7 +260,6 @@ def construir(scene):
     scene.play(Create(recta), run_time=1.0)
     scene.next_slide()
 
-    # ---------------------- 2: n entradas -----------------------------------
     expandida = _pintar(
         MathTex(r"\hat{y}", "=", "w_1", "x_1", "+", "w_2", "x_2", "+",
                 r"\cdots", "+", "w_n", "x_n", "+", "b"),
@@ -330,7 +278,6 @@ def construir(scene):
     scene.play(FadeIn(pie), run_time=0.5)
     scene.next_slide()
 
-    # ---------------------- 3: todas las muestras a la vez ------------------
     matricial = _pintar(
         MathTex(r"\hat{Y}", "=", "X", "W", "+", "b"),
         ((0, AMBAR), (2, VERDE), (3, PRIMARIO), (5, MORADO)),
@@ -347,9 +294,6 @@ def construir(scene):
     scene.play(FadeIn(bloques[1]), FadeIn(leyenda), run_time=0.6)
     scene.next_slide()
 
-    # ---------------------- 4: más neuronas, la misma recta -----------------
-    # Dos capas lineales encadenadas se multiplican entre sí y vuelven a caber
-    # en un solo peso y un solo sesgo: la forma de la ecuación no cambia.
     columna = VGroup(expandida, pie, matricial, bloques, leyenda)
     red = _red_compacta()
     algebra, final = _composicion()
@@ -365,7 +309,6 @@ def construir(scene):
     scene.play(FadeIn(algebra[2], shift=UP * 0.1), Create(caja), run_time=0.7)
     scene.play(FadeIn(remate), run_time=0.5)
 
-    # Cambian los parámetros, gira la recta, y sigue siendo una recta.
     for pendiente, altura in ((-0.42, 1.95), (0.6, 1.9)):
         def girada(x, m=pendiente, c=altura):
             return m * (x - VERTICE) + c
@@ -376,7 +319,6 @@ def construir(scene):
     scene.play(Transform(recta, _recta(ejes, ajuste, VERDE)), run_time=0.7)
     scene.next_slide()
 
-    # ---------------------- 5: datos no lineales ----------------------------
     scene.play(
         *[p.animate.move_to(ejes.c2p(x, y))
           for p, x, y in zip(puntos, xs, ys_curva)],
@@ -384,7 +326,6 @@ def construir(scene):
     )
     scene.next_slide()
 
-    # El modelo hace lo único que puede: aplanar la recta. Y aun así falla.
     scene.play(
         Transform(recta, _recta(ejes, lambda x: NIVEL_PLANO, AMBAR)),
         run_time=0.9,

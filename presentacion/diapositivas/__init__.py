@@ -1,17 +1,3 @@
-"""Diapositivas agrupadas en mixins temáticos.
-
-Cada diapositiva vive en su propio archivo como ``construir(scene)``; aquí se
-agrupan en mixins que exponen métodos ``slide_<nombre>(self)`` para la clase
-principal de ``main.py``. ``SlideBase`` aporta la limpieza de pantalla entre
-diapositivas y el contador de avance.
-
-Para añadir una diapositiva:
-  1) crea ``diapositivas/<nombre>.py`` (copia ``_plantilla.py``);
-  2) impórtalo abajo y añade ``slide_<nombre> = _slide(<nombre>.construir)``
-     al mixin que corresponda;
-  3) llámalo desde ``construct`` en ``main.py``.
-"""
-
 from manim import UP, FadeIn, FadeOut
 
 from componentes import logo_esquina, red_decorativa
@@ -19,13 +5,18 @@ from componentes import logo_esquina, red_decorativa
 from . import (
     activaciones_validas,
     ajuste_curva,
+    backprop_ejemplo,
+    backprop_neurona,
     backpropagation,
     bajar_el_valle,
     cierre,
     como_aprendemos,
     contenido,
+    convexidad,
     curvas_perdida,
     decidir,
+    diferenciable,
+    entropia_cruzada,
     funcion_error,
     falta_algo,
     frameworks,
@@ -33,43 +24,29 @@ from . import (
     idea_vieja,
     la_recta,
     neurona_biologica,
+    perdida_clasificacion,
+    perdida_regresion,
     perceptron,
     porque_funciona,
     porque_importan,
     potencial_accion,
     portada,
+    pregunta_error,
     pronto_iniciamos,
+    red_neuronal,
     siguientes_pasos,
     softmax,
+    tabla_perdidas,
 )
 
 
 class SlideBase:
-    """Estado y utilidades compartidas por todas las diapositivas.
-
-    Va antes de ``Slide`` en la herencia de ``presentation``, así que su
-    ``next_slide`` envuelve al de manim-slides: ninguna diapositiva tiene que
-    acordarse del indicador de avance.
-    """
-
     def indicador(self):
-        """Logo de la esquina, creado una sola vez y reutilizado en cada pausa."""
         if getattr(self, "_indicador", None) is None:
             self._indicador = logo_esquina()
         return self._indicador
 
     def next_slide(self, *args, indicador=True, **kwargs):
-        """Pausa marcando con el logo del semillero que la charla sigue.
-
-        El logo entra como última animación de la diapositiva —así queda en el
-        fotograma congelado de la pausa— y se retira nada más avanzar, para que
-        no se quede encima del contenido siguiente.
-
-        ``indicador=False`` cierra el tramo sin él. Hace falta en dos casos: en
-        la última pausa de la charla, donde ya no queda nada que anunciar, y al
-        cerrar un tramo en bucle, donde esa animación de entrada caería dentro
-        del bucle y el logo parpadearía en cada vuelta.
-        """
         if not indicador:
             super().next_slide(*args, **kwargs)
             return
@@ -79,12 +56,6 @@ class SlideBase:
         self.remove(logo)
 
     def iniciar_slide(self):
-        """Limpia la pantalla (salvo el marco) y estrena el fondo de red.
-
-        Cada diapositiva estrena un preset distinto de ``red_decorativa``, que
-        rota con el número de diapositiva: el fondo va cambiando solo, sin que
-        ninguna diapositiva tenga que ocuparse de él.
-        """
         self._slide_actual = getattr(self, "_slide_actual", 0) + 1
         marco = getattr(self, "marco", None)
         fondo_viejo = getattr(self, "_fondo", None)
@@ -98,12 +69,10 @@ class SlideBase:
             salidas.append(FadeOut(fondo_viejo))
         self.play(*salidas, FadeIn(self._fondo))
         if marco is not None:
-            self.add(marco)  # re-añadir lo trae al frente, por encima de la red
+            self.add(marco)
 
 
 def _slide(construir):
-    """Adapta un ``construir(scene)`` a un método de diapositiva (limpia y delega)."""
-
     def metodo(self):
         self.iniciar_slide()
         construir(self)
@@ -111,7 +80,6 @@ def _slide(construir):
     return metodo
 
 
-# --- Mixins temáticos: agrupa las diapositivas por sección ------------------
 class SlidesInicio:
     slide_pronto_iniciamos = _slide(pronto_iniciamos.construir)
     slide_portada = _slide(portada.construir)
@@ -123,6 +91,7 @@ class SlidesCuerpo:
     slide_idea_vieja = _slide(idea_vieja.construir)
     slide_neurona_biologica = _slide(neurona_biologica.construir)
     slide_perceptron = _slide(perceptron.construir)
+    slide_red_neuronal = _slide(red_neuronal.construir)
     slide_la_recta = _slide(la_recta.construir)
     slide_falta_algo = _slide(falta_algo.construir)
     slide_potencial_accion = _slide(potencial_accion.construir)
@@ -133,8 +102,17 @@ class SlidesCuerpo:
     slide_decidir = _slide(decidir.construir)
     slide_softmax = _slide(softmax.construir)
     slide_funcion_error = _slide(funcion_error.construir)
+    slide_pregunta_error = _slide(pregunta_error.construir)
+    slide_convexidad = _slide(convexidad.construir)
+    slide_diferenciable = _slide(diferenciable.construir)
+    slide_perdida_regresion = _slide(perdida_regresion.construir)
+    slide_perdida_clasificacion = _slide(perdida_clasificacion.construir)
+    slide_entropia_cruzada = _slide(entropia_cruzada.construir)
+    slide_tabla_perdidas = _slide(tabla_perdidas.construir)
     slide_bajar_el_valle = _slide(bajar_el_valle.construir)
     slide_backpropagation = _slide(backpropagation.construir)
+    slide_backprop_ejemplo = _slide(backprop_ejemplo.construir)
+    slide_backprop_neurona = _slide(backprop_neurona.construir)
     slide_curvas_perdida = _slide(curvas_perdida.construir)
     slide_contenido = _slide(contenido.construir)
 

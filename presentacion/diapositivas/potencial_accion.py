@@ -1,29 +1,3 @@
-"""Diapositiva 10 — El potencial de acción, de la célula a la curva.
-
-Unifica lo que antes eran tres diapositivas sueltas (polarización, canales y
-umbral) en un solo cuadro, como el de una clase de fisiología. Es larga a
-propósito: aquí se juntan las tres ideas y conviene verlas encajar.
-
-  * Arriba, la célula entera, sin rótulos: aquí no toca nombrar sus partes,
-    ya se hizo en su diapositiva.
-  * Abajo a la izquierda, el zoom de la membrana de una dendrita: la bicapa,
-    las cargas separadas y los dos canales.
-  * A la derecha, el voltaje en el tiempo, con la línea de reposo y la del
-    umbral.
-
-Primero un estímulo que se queda corto —y que se borra antes de seguir, para no
-ensuciar la gráfica—. Después el que cruza el umbral, contado en sus dos partes:
-entra sodio y el voltaje sube hasta el pico; desde ahí sale potasio y el voltaje
-vuelve a bajar. Las dos fases se cuentan de viva voz: en pantalla se ven los
-iones cruzando y la curva, sin rótulos encima. Todo o nada, que es la no linealidad que le
-falta al perceptrón.
-
-Detalles de dibujo: las trazas se construyen con ``set_points_smoothly`` —una
-poligonal deja el pico y las esquinas angulosos— y llevan un resplandor detrás.
-El ``Axes`` se usa solo para mapear coordenadas (``c2p``); nunca se añade a la
-escena, porque dibujaría su eje horizontal en y = 0, en mitad de la gráfica.
-"""
-
 import numpy as np
 from manim import (
     DOWN,
@@ -53,31 +27,24 @@ from componentes import titulo as hacer_titulo
 from estilo import AMBAR, CLARO, MORADO, PRIMARIO, SECUNDARIO, VERDE
 
 from . import _membrana
-# La célula es la misma que se dibujó en la diapositiva de la neurona biológica:
-# si aquí se dibujara otra, el público no reconocería el sitio.
 from .neurona_biologica import _neurona as _celula
 
-# --- Arriba: la célula -----------------------------------------------------
 ESCALA_CELULA = 0.52
 CENTRO_CELULA = [-3.55, 2.15, 0]
 RADIO_MIRA = 0.32
-DENDRITA_MIRA = 1        # de qué tronco dendrítico sale el zoom
-# Casi en la punta del tronco: a media dendrita el círculo todavía pilla el
-# soma y parece que el zoom es del cuerpo celular.
+DENDRITA_MIRA = 1
 PROPORCION_MIRA = 1.0
 
-# --- Abajo a la izquierda: la membrana ampliada ----------------------------
 Y_MEMBRANA = -1.15
 X_PANEL = (-6.45, -0.75)
 ALTO_PANEL = 3.3
 RADIO_ION = 0.2
-APERTURA_CANAL = 0.24   # lo justo para que quepa un ion por el hueco
+APERTURA_CANAL = 0.24
 X_CANAL_NA = -4.9
 X_CANAL_K = -2.3
 Y_FUERA = Y_MEMBRANA + 0.95
 Y_DENTRO = Y_MEMBRANA - 0.95
 
-# --- A la derecha: el voltaje en el tiempo ---------------------------------
 REPOSO = -70
 UMBRAL = -55
 PICO = 40
@@ -89,8 +56,6 @@ TRAZA_DEBIL = (
     (0.0, REPOSO), (1.4, REPOSO), (2.1, -66), (2.7, -61), (3.2, -60.5),
     (3.8, -63), (4.6, -67), (5.6, -69.5), (7.0, REPOSO), (T_MAX, REPOSO),
 )
-# El potencial de acción tiene dos partes y se cuentan por separado: la subida
-# es sodio entrando; la bajada es potasio saliendo.
 T_PICO = 4.05
 SUBIDA = (
     (0.0, REPOSO), (1.4, REPOSO), (2.1, -66), (2.6, -58), (2.9, UMBRAL),
@@ -103,11 +68,6 @@ BAJADA = (
 
 
 def _iones(carga, color, x_canal, y, desplazamientos):
-    """Grupo de iones esperando su turno a un lado del canal.
-
-    Solo llevan su signo dentro: quién es cada uno ya lo dice el color y el
-    rótulo de su canal, y con "Na"/"K" escritos la bolita se ensucia.
-    """
     return VGroup(*[
         _membrana.ion(carga, [x_canal + dx, y + dy, 0], color,
                       radio=RADIO_ION, tam=17)
@@ -116,7 +76,6 @@ def _iones(carga, color, x_canal, y, desplazamientos):
 
 
 def _tren(camino, simbolo, color, cantidad=4):
-    """Fila de símbolos lista para recorrer el axón."""
     return [
         _membrana.ion(simbolo, camino.get_start(), color, radio=0.15, tam=15)
         for _ in range(cantidad)
@@ -124,7 +83,6 @@ def _tren(camino, simbolo, color, cantidad=4):
 
 
 def _recorrer(scene, camino, simbolo, color, run_time=1.3):
-    """Manda esa fila axón abajo, escalonada, y la apaga al llegar."""
     tren = _tren(camino, simbolo, color)
     scene.add(*tren)
     scene.play(
@@ -135,22 +93,12 @@ def _recorrer(scene, camino, simbolo, color, run_time=1.3):
 
 
 def _abrir(canal, cantidad):
-    """Abre o cierra un canal separando sus dos mitades.
-
-    Rehacerlo con ``become`` interpola entre dos formas distintas y el gesto
-    sale seco; deslizar las mitades es lo que hace de verdad una compuerta.
-    """
     izquierda, derecha = canal
     return (izquierda.animate.shift(LEFT * cantidad),
             derecha.animate.shift(RIGHT * cantidad))
 
 
 def _traza(ejes, puntos, color):
-    """Curva de voltaje, suave y con resplandor.
-
-    Devuelve ``(grupo, curva)``: la curva suelta es la que recorre el punto
-    encendido que va marcando la punta mientras se dibuja.
-    """
     curva = VMobject(color=color, stroke_width=4.5)
     curva.set_points_smoothly([ejes.c2p(t, v) for t, v in puntos])
     resplandor = curva.copy().set_stroke(width=14, opacity=0.15)
@@ -158,7 +106,6 @@ def _traza(ejes, puntos, color):
 
 
 def _dibujar_traza(scene, grupo, curva, color, run_time):
-    """Dibuja la traza con un punto encendido montado en la punta."""
     punta = Dot(color=color, radius=0.075).move_to(curva.get_start())
     scene.add(punta)
     scene.play(
@@ -171,7 +118,6 @@ def _dibujar_traza(scene, grupo, curva, color, run_time):
 def construir(scene):
     encabezado = hacer_titulo("El potencial de acción")
 
-    # --- La célula y la dendrita por la que nos vamos a meter --------------
     celula, piezas = _celula()
     celula.scale(ESCALA_CELULA).move_to(CENTRO_CELULA)
     tronco = piezas["troncos"][DENDRITA_MIRA]
@@ -181,7 +127,6 @@ def construir(scene):
     halo_mira = Circle(radius=RADIO_MIRA * 1.45, stroke_width=0)
     halo_mira.set_fill(PRIMARIO, opacity=0.12).move_to(punto_mira)
 
-    # --- El zoom de esa membrana -------------------------------------------
     capa = _membrana.bicapa(
         y=Y_MEMBRANA, x_izq=X_PANEL[0], x_der=X_PANEL[1],
     )
@@ -219,7 +164,6 @@ def construir(scene):
     potasio = _iones("+", VERDE, X_CANAL_K, Y_DENTRO,
                      ((-0.64, -0.04), (0.0, -0.36), (0.64, 0.0)))
 
-    # --- La gráfica ---------------------------------------------------------
     ejes = Axes(
         x_range=[0, T_MAX, 1], y_range=[V_MIN, V_MAX, 25],
         x_length=6.0, y_length=4.6,
@@ -258,22 +202,17 @@ def construir(scene):
     grupo_subida, curva_subida = _traza(ejes, SUBIDA, AMBAR)
     grupo_bajada, curva_bajada = _traza(ejes, BAJADA, VERDE)
 
-    # ---------------------- Animación --------------------------------------
     scene.play(FadeIn(encabezado, shift=DOWN * 0.2), run_time=0.6)
     scene.play(Create(celula), run_time=1.3)
     scene.play(FadeIn(halo_mira), Create(mira), run_time=0.6)
     scene.play(Indicate(mira, color=PRIMARIO, scale_factor=1.25), run_time=0.5)
     scene.next_slide()
 
-    # --- Ahí dentro: la membrana en reposo ---------------------------------
     scene.play(Create(guias), FadeIn(panel), run_time=0.6)
     scene.play(
         LaggedStart(*[Create(p) for p in capa], lag_ratio=0.01), run_time=1.1,
     )
 
-    # La polarización no aparece de golpe: las cargas llegan de fuera del panel,
-    # se colocan a cada lado y después las recorre una onda. Así se ve que lo
-    # que hay en reposo es una separación de cargas, no unos adornos.
     scene.play(
         LaggedStart(*[FadeIn(i, shift=DOWN * 0.8) for i in positivos],
                     lag_ratio=0.18),
@@ -287,13 +226,11 @@ def construir(scene):
         run_time=1.0,
     )
 
-    # Esa separación es el reposo: la gráfica arranca ahí.
     scene.play(Create(eje_v), Create(eje_t), FadeIn(rot_v), FadeIn(rot_t),
                run_time=0.9)
     scene.play(Create(linea_reposo), FadeIn(rot_reposo), run_time=0.6)
     scene.next_slide()
 
-    # --- Las puertas ------------------------------------------------------
     scene.play(
         FadeIn(canal_na), FadeIn(canal_k), FadeIn(rot_na), FadeIn(rot_k),
         run_time=0.7,
@@ -308,7 +245,6 @@ def construir(scene):
     scene.play(Create(linea_umbral), FadeIn(rot_umbral), run_time=0.7)
     scene.next_slide()
 
-    # --- Primer intento: se queda corto ------------------------------------
     pulso = Dot(color=VERDE, radius=0.06).move_to(tronco.get_end())
     scene.add(pulso)
     scene.play(MoveAlongPath(pulso, tronco.copy().reverse_points()),
@@ -329,10 +265,8 @@ def construir(scene):
     )
     scene.next_slide()
 
-    # El intento fallido se borra: la gráfica queda limpia para el que sí va.
     scene.play(FadeOut(grupo_debil), run_time=0.7)
 
-    # --- Segundo intento, parte 1: entra sodio y sube hasta el pico --------
     pulsos = [
         Dot(color=VERDE, radius=0.07).move_to(t.get_end())
         for t in piezas["troncos"]
@@ -363,8 +297,6 @@ def construir(scene):
         run_time=0.6,
     )
 
-    # En el pico la neurona ya ha disparado: lo que viaja axón abajo es carga
-    # positiva, así que se ve como una fila de "+".
     _recorrer(scene, piezas["linea_axon"], "+", AMBAR)
     scene.play(
         *[Flash(b, color=AMBAR, line_length=0.12, num_lines=10,
@@ -373,7 +305,6 @@ def construir(scene):
     )
     scene.next_slide()
 
-    # --- Parte 2: gastando ATP sale el potasio y vuelve abajo --------------
     scene.play(
         *_abrir(canal_na, -APERTURA_CANAL),
         run_time=0.7,

@@ -1,20 +1,3 @@
-"""Diapositiva 4 — La neurona biológica.
-
-Se dibuja una neurona vectorial y se nombran sus tres partes, cada una con su
-color: dendritas (verde, entradas), soma (cian, integra) y axón (ámbar, salida).
-Después una señal recorre la célula en ese orden, que es lo que fija la
-dirección de la información — el guion original la tenía invertida. Y al final
-la cámara se aleja: la célula se encoge hasta ser un punto de un campo entero
-que se enciende, que es como se ve "miles de millones, conectadas en red" sin
-tener que escribirlo.
-
-Los colores no son decorativos: la diapositiva 5 reutiliza el mismo código de
-color sobre el perceptrón para que la analogía se lea sola.
-
-Se dibuja en Manim en lugar de usar ``assets/neurona_partes.jpg`` porque esa
-imagen tiene fondo blanco y rótulos negros, ilegibles sobre el fondo oscuro.
-"""
-
 import numpy as np
 from manim import (
     BOLD,
@@ -48,16 +31,14 @@ Y_NEURONA = 0.0
 RADIO_SOMA = 0.68
 LARGO_DENDRITA = 1.0
 LARGO_AXON = 6.4
-ANGULOS_DENDRITA = (2.75, 3.03, 3.31, 3.59)  # ~157° a ~206°: apuntan a la izquierda
+ANGULOS_DENDRITA = (2.75, 3.03, 3.31, 3.59)
 
 
 def _u(angulo):
-    """Vector unitario en el plano para un ángulo en radianes."""
     return np.array([np.cos(angulo), np.sin(angulo), 0.0])
 
 
 def _curva(puntos, grosor, color=SECUNDARIO):
-    """Trazo suave con las puntas redondeadas: nada de esquinas de palillo."""
     curva = VMobject(color=color, stroke_width=grosor)
     curva.set_points_smoothly([np.array(p) for p in puntos])
     curva.cap_style = CapStyleType.ROUND
@@ -65,7 +46,6 @@ def _curva(puntos, grosor, color=SECUNDARIO):
 
 
 def _tramo(camino, desde, hasta, grosor, color=SECUNDARIO):
-    """Trozo de un camino ya existente, para envainar el axón siguiéndolo."""
     tramo = VMobject(color=color, stroke_width=grosor)
     tramo.pointwise_become_partial(camino, desde, hasta)
     tramo.cap_style = CapStyleType.ROUND
@@ -73,7 +53,6 @@ def _tramo(camino, desde, hasta, grosor, color=SECUNDARIO):
 
 
 def _ramificar(rng, origen, angulo, largo, profundidad, grosor):
-    """Rama dendrítica recursiva: curvada, más fina en cada bifurcación."""
     giro = rng.uniform(-0.3, 0.3)
     fin = origen + largo * _u(angulo + giro)
     medio = origen + largo * 0.55 * _u(angulo + giro * 0.3)
@@ -88,11 +67,9 @@ def _ramificar(rng, origen, angulo, largo, profundidad, grosor):
 
 
 def _neurona(largo_axon=LARGO_AXON, semilla=5):
-    """Neurona completa. Devuelve el grupo y las piezas que la animación usa."""
     centro = np.array([X_SOMA, Y_NEURONA, 0.0])
     rng = np.random.default_rng(semilla)
 
-    # --- Soma: blob orgánico con relleno tenue y un resplandor detrás ------
     contorno = [
         centro + RADIO_SOMA * rng.uniform(0.93, 1.09) * _u(a)
         for a in np.linspace(0, TAU, 14, endpoint=False)
@@ -109,8 +86,6 @@ def _neurona(largo_axon=LARGO_AXON, semilla=5):
         Dot(centro, radius=0.18, color=SECUNDARIO, fill_opacity=0.9),
     )
 
-    # --- Dendritas: los troncos se guardan aparte, son el camino del pulso -
-    # Arrancan un poco dentro del soma para que no se vea la costura.
     troncos = VGroup()
     dendritas = VGroup()
     for angulo in ANGULOS_DENDRITA:
@@ -125,7 +100,6 @@ def _neurona(largo_axon=LARGO_AXON, semilla=5):
                 rng, fin, angulo + lado * 0.45, LARGO_DENDRITA * 0.66, 1, 4.2,
             ))
 
-    # --- Axón: curva suave envainada en mielina ---------------------------
     inicio_axon = centro + RADIO_SOMA * 0.85 * RIGHT
     fin_axon = inicio_axon + RIGHT * largo_axon
     linea_axon = _curva([
@@ -134,14 +108,11 @@ def _neurona(largo_axon=LARGO_AXON, semilla=5):
         inicio_axon + RIGHT * largo_axon * 0.68 - UP * 0.2,
         fin_axon,
     ], 5)
-    # Las vainas son trozos gruesos del propio axón, no cápsulas encima: así
-    # siguen la curva y los huecos entre ellas leen como nódulos de Ranvier.
     mielina = VGroup(*[
         _tramo(linea_axon, arranque, arranque + 0.115, 16)
         for arranque in (0.16, 0.3, 0.44, 0.58, 0.72)
     ]).set_stroke(opacity=0.8)
 
-    # --- Terminales ---------------------------------------------------------
     terminales = VGroup()
     puntas = VGroup()
     for giro in (-0.62, -0.21, 0.21, 0.62):
@@ -171,7 +142,6 @@ def _neurona(largo_axon=LARGO_AXON, semilla=5):
 
 
 def _celula_mini(rng, centro):
-    """Neurona de lejos: núcleo con halo y unas ramas cortas alrededor."""
     radio = 0.075
     halo = Circle(radius=radio * 2.8, stroke_width=0)
     halo.set_fill(PRIMARIO, opacity=0.12).move_to(centro)
@@ -187,12 +157,6 @@ def _celula_mini(rng, centro):
 
 
 def _campo(cantidad=34, semilla=17):
-    """Campo de neuronas repartidas por la pantalla, con la red que las une.
-
-    Devuelve ``(celulas, hilos, conexiones)``. Las posiciones se sortean con
-    rechazo para que ninguna se pegue a otra, y se dejan libres la franja del
-    título y el borde del marco.
-    """
     rng = np.random.default_rng(semilla)
     puntos = []
     for _ in range(8000):
@@ -214,7 +178,6 @@ def _campo(cantidad=34, semilla=17):
 
 
 def _etiqueta(nombre, color, posicion, ancla):
-    """Rótulo con una línea guía discontinua hasta ``ancla``."""
     bloque = texto(nombre, 24, color=color, weight=BOLD).move_to(posicion)
 
     direccion = np.array(ancla) - bloque.get_center()
@@ -248,7 +211,6 @@ def construir(scene):
         rotulo_axon, guia_axon,
     )
 
-    # ---------------------- Animación: se dibuja la célula ------------------
     scene.play(FadeIn(encabezado, shift=DOWN * 0.2), run_time=0.6)
     scene.play(Create(piezas["soma"]), FadeIn(piezas["nucleo"]), run_time=0.7)
     scene.play(
@@ -264,7 +226,6 @@ def construir(scene):
     scene.play(Create(piezas["terminales"]), run_time=0.6)
     scene.next_slide()
 
-    # --- Se nombran las partes, cada una con su color ----------------------
     scene.play(
         piezas["dendritas"].animate.set_color(VERDE),
         FadeIn(rotulo_dendritas), Create(guia_dendritas),
@@ -289,7 +250,6 @@ def construir(scene):
     )
     scene.next_slide()
 
-    # --- La señal recorre la célula: dendritas → soma → axón ---------------
     pulsos = [
         Dot(color=VERDE, radius=0.07).move_to(t.get_end())
         for t in piezas["troncos"]
@@ -321,9 +281,6 @@ def construir(scene):
     )
     scene.next_slide()
 
-    # --- Y no está sola: la cámara se aleja --------------------------------
-    # Sin rótulos ni cifras: la célula se encoge hasta ser un punto más de un
-    # campo entero que se enciende. Eso ya dice "miles de millones, en red".
     celulas, hilos, conexiones = _campo()
     semilla_campo = celulas[0].get_center()
 
@@ -342,7 +299,6 @@ def construir(scene):
         run_time=1.6,
     )
 
-    # La red entera se enciende: impulsos sueltos saltando de célula a célula.
     rng = np.random.default_rng(9)
     for _ in range(2):
         elegidas = rng.choice(len(conexiones), size=12, replace=False)

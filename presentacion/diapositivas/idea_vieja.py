@@ -1,13 +1,3 @@
-"""Diapositiva 3 — No es una idea nueva.
-
-Arranca donde terminó la diapositiva anterior (hoy: ChatGPT, Claude) y rebobina
-hacia atrás: la línea temporal se dibuja de derecha a izquierda hasta aterrizar
-en 1957, con Rosenblatt y el perceptrón.
-
-El hito de 1986 se planta aquí sin explicar a propósito: lo recoge la
-diapositiva de backpropagation.
-"""
-
 from manim import (
     BOLD,
     DOWN,
@@ -32,14 +22,13 @@ from estilo import AMBAR, CLARO, FONT_TITULO, PRIMARIO, SECUNDARIO
 
 Y_LINEA = 1.35
 Y_TARJETA = -1.0
-X_EXTREMO = 5.9       # medio ancho de la línea temporal
-SEPARACION = 2.5      # distancia entre hitos consecutivos
-ANCHO_MAX_HITO = 2.1  # tope para que las etiquetas vecinas no se toquen
-ALTO_FOTO = 1.8       # alto del retrato de Rosenblatt
-ANIO_ACTUAL = 2026    # para el "hace N años"
+X_EXTREMO = 5.9
+SEPARACION = 2.5
+ANCHO_MAX_HITO = 2.1
+ALTO_FOTO = 1.8
+ANIO_ACTUAL = 2026
 ANIO_PERCEPTRON = 1957
 
-# De más antiguo a más reciente: así se colocan en pantalla (izquierda→derecha).
 HITOS = (
     ("1957", "El perceptrón"),
     ("1969", "Primer invierno"),
@@ -50,7 +39,6 @@ HITOS = (
 
 
 def _marcador(anio, descripcion, x, destacado=False):
-    """Punto sobre la línea con el año encima y el hito debajo."""
     color = PRIMARIO if destacado else SECUNDARIO
     punto = Dot(radius=0.12 if destacado else 0.08, color=color)
     punto.move_to([x, Y_LINEA, 0])
@@ -66,7 +54,6 @@ def _marcador(anio, descripcion, x, destacado=False):
 
 
 def _tarjeta_rosenblatt():
-    """Retrato, el año en grande y al lado quién fue y cuánto hace de esto."""
     foto = imagen("frank.jpg").scale_to_fit_height(ALTO_FOTO)
     marco_foto = enmarcar(foto, margen=0.12).set_stroke(width=3)
     retrato = Group(foto, marco_foto)
@@ -82,7 +69,6 @@ def _tarjeta_rosenblatt():
         texto(f"hace {ANIO_ACTUAL - ANIO_PERCEPTRON} años", 18, color=AMBAR),
     ).arrange(DOWN, buff=0.16, aligned_edge=LEFT)
 
-    # Group (no VGroup): la foto es un ImageMobject, no un VMobject.
     fila = Group(retrato, anio, divisor, detalle).arrange(RIGHT, buff=0.45)
     caja = enmarcar(fila, margen=0.8)
     return Group(caja, fila).move_to([0, Y_TARJETA, 0])
@@ -96,9 +82,8 @@ def construir(scene):
         _marcador(anio, hito, x, destacado=(anio == str(ANIO_PERCEPTRON)))
         for (anio, hito), x in zip(HITOS, xs)
     ]
-    perceptron, *anteriores = marcadores  # el de 1957 va aparte, es el destino
+    perceptron, *anteriores = marcadores
 
-    # Definida de derecha a izquierda: ``Create`` la dibuja rebobinando.
     linea = Line(
         [X_EXTREMO, Y_LINEA, 0], [-X_EXTREMO, Y_LINEA, 0],
         color=SECUNDARIO, stroke_width=3, stroke_opacity=0.7,
@@ -106,14 +91,11 @@ def construir(scene):
 
     tarjeta = _tarjeta_rosenblatt()
 
-    # ---------------------- Animación --------------------------------------
     scene.play(FadeIn(encabezado, shift=DOWN * 0.2), run_time=0.6)
 
-    # Partimos de hoy: lo que acabamos de ver en la diapositiva anterior.
     scene.play(GrowFromCenter(anteriores[-1]), run_time=0.6)
     scene.next_slide()
 
-    # Rebobinado: la línea barre hacia la izquierda destapando los hitos.
     scene.play(
         Create(linea),
         LaggedStart(
@@ -124,7 +106,6 @@ def construir(scene):
     )
     scene.next_slide()
 
-    # Destino: 1957.
     scene.play(GrowFromCenter(perceptron), run_time=0.5)
     scene.play(
         Flash(perceptron[0], color=PRIMARIO, line_length=0.25, num_lines=16,
