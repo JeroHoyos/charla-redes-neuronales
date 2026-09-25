@@ -2,103 +2,33 @@ import numpy as np
 from manim import (
     DOWN,
     LEFT,
-    ORIGIN,
     RIGHT,
     UP,
     Arrow,
     Circle,
     Create,
-    Dot,
     FadeIn,
     FadeOut,
     LaggedStart,
     Line,
     MathTex,
-    MoveAlongPath,
     MoveToTarget,
-    Rectangle,
-    Rotate,
-    RoundedRectangle,
     Transform,
     VGroup,
     Write,
-    there_and_back,
 )
 
 from componentes import texto
 from componentes import titulo as hacer_titulo
-from estilo import AMBAR, CLARO, FONDO, MORADO, PRIMARIO, ROJO, SECUNDARIO, VERDE
+from estilo import AMBAR, CLARO, FONDO, PRIMARIO, ROJO, SECUNDARIO, VERDE
+
+from . import _backprop
 
 Y_CADENA = 0.35
-ANCHO_CAJA, ALTO_CAJA = 1.15, 0.95
 LARGO_FLECHA = 0.62
 
-CAPAS_RED = (3, 4, 4, 2)
-X_RED = -2.0
-Y_RED = -0.65
-SEP_CAPA = 2.35
-SEP_NODO = 0.95
-RADIO_NODO = 0.28
-CENTRADO = -X_RED
+CENTRADO = -_backprop.X_RED
 AMPLIACION = 1.25
-ZOOM = 3.4
-Y_ROTULO_GRADIENTE = 1.55
-ARISTA_ELEGIDA = 1
-
-X_TERMO = 4.6
-ANCHO_TERMO = 0.8
-ALTO_TERMO = 3.2
-Y_PIE_TERMO = -2.3
-LLENO = 0.86
-TRAS_EL_PASO = 0.34
-
-Y_NEURONA = 0.2
-PASO_ENTRADA = 1.15
-X_ENTRADA = -4.0
-X_PERILLA = -3.2
-X_MULT = -1.8
-X_SUMA = 0.0
-X_RELU = 1.8
-X_PERDIDA = 3.8
-ALTURAS_NEURONA = tuple(
-    Y_NEURONA + PASO_ENTRADA - i * PASO_ENTRADA for i in range(3)
-)
-
-
-def _perilla(nombre=None, angulo=np.pi / 2, radio=0.22, lado=LEFT):
-    cuerpo = Circle(radius=radio, color=AMBAR, stroke_width=3)
-    cuerpo.set_fill(FONDO, opacity=1.0)
-    aguja = Line(
-        ORIGIN, np.array([np.cos(angulo), np.sin(angulo), 0.0]) * radio * 0.74,
-        color=AMBAR, stroke_width=3,
-    )
-    mando = VGroup(cuerpo, aguja)
-    if nombre is None:
-        return VGroup(mando)
-    etiqueta = MathTex(nombre, color=AMBAR).scale(0.6)
-    etiqueta.next_to(mando, lado, buff=0.14)
-    return VGroup(mando, etiqueta)
-
-
-def _colgar(perilla, de, buff):
-    perilla.next_to(de, DOWN, buff=buff)
-    return perilla.shift(
-        RIGHT * (de.get_center()[0] - perilla[0].get_center()[0]),
-    )
-
-
-def _girar(perilla, angulo=-0.7):
-    return Rotate(perilla[0][1], angle=angulo,
-                  about_point=perilla[0][0].get_center())
-
-
-def _caja(etiqueta, color, ancho=ANCHO_CAJA, escala=0.8):
-    caja = RoundedRectangle(
-        width=ancho, height=ALTO_CAJA, corner_radius=0.16,
-        stroke_color=color, stroke_width=3,
-    ).set_fill(color, opacity=0.08)
-    dentro = MathTex(etiqueta, color=color).scale(escala)
-    return VGroup(caja, dentro.move_to(caja.get_center()))
 
 
 def _flecha_corta(color=SECUNDARIO):
@@ -110,8 +40,8 @@ def _flecha_corta(color=SECUNDARIO):
 
 def _cadena_funciones():
     entrada = MathTex("x", color=CLARO).scale(0.95)
-    efes = [_caja(f"f_{i}", PRIMARIO) for i in (1, 2, 3)]
-    perdida = _caja(r"\ell", ROJO)
+    efes = [_backprop.caja(f"f_{i}", PRIMARIO) for i in (1, 2, 3)]
+    perdida = _backprop.caja(r"\ell", ROJO)
     salida = MathTex("L", color=ROJO).scale(1.2)
     flechas = [_flecha_corta() for _ in range(5)]
 
@@ -127,7 +57,9 @@ def _cadena_funciones():
         for i in (1, 2, 3)
     ])
 
-    perilla = _colgar(_perilla("w", lado=LEFT), efes[0], buff=0.55)
+    perilla = _backprop.colgar(
+        _backprop.perilla("w", lado=LEFT), efes[0], buff=0.55,
+    )
     cable = Line(
         efes[0].get_bottom(), perilla[0].get_top(),
         color=AMBAR, stroke_width=2,
@@ -141,192 +73,6 @@ def _numerito(n, debajo_de):
     circulo.set_fill(FONDO, opacity=1.0)
     numero = texto(str(n), 13, color=SECUNDARIO).move_to(circulo.get_center())
     return VGroup(circulo, numero).next_to(debajo_de, DOWN, buff=0.16)
-
-
-def _x_capa(i):
-    return X_RED + (i - (len(CAPAS_RED) - 1) / 2) * SEP_CAPA
-
-
-def _red():
-    capas = []
-    for i, n in enumerate(CAPAS_RED):
-        x = _x_capa(i)
-        alto = (n - 1) * SEP_NODO
-        capas.append(VGroup(*[
-            Circle(radius=RADIO_NODO, color=SECUNDARIO, stroke_width=2.5)
-            .set_fill(FONDO, opacity=1.0)
-            .move_to([x, Y_RED + alto / 2 - j * SEP_NODO, 0])
-            for j in range(n)
-        ]))
-
-    conexiones = []
-    for izquierda, derecha in zip(capas, capas[1:]):
-        grupo = VGroup()
-        for a in izquierda:
-            for b in derecha:
-                direccion = b.get_center() - a.get_center()
-                direccion = direccion / np.linalg.norm(direccion)
-                grupo.add(Line(
-                    a.get_center() + direccion * RADIO_NODO,
-                    b.get_center() - direccion * RADIO_NODO,
-                    color=SECUNDARIO, stroke_width=1.5, stroke_opacity=0.4,
-                ))
-        conexiones.append(grupo)
-    return capas, conexiones
-
-
-def _tubo():
-    tubo = Rectangle(
-        width=ANCHO_TERMO, height=ALTO_TERMO,
-        stroke_color=SECUNDARIO, stroke_width=2,
-    ).set_fill(FONDO, opacity=1.0)
-    return tubo.move_to([X_TERMO, Y_PIE_TERMO + ALTO_TERMO / 2, 0])
-
-
-def _liquido(fraccion):
-    llenado = max(ALTO_TERMO * fraccion, 0.04)
-    barra = Rectangle(
-        width=ANCHO_TERMO - 0.14, height=llenado,
-        stroke_width=0, fill_color=ROJO, fill_opacity=0.8,
-    )
-    return barra.move_to([X_TERMO, Y_PIE_TERMO + llenado / 2, 0])
-
-
-def _restaurar_red(capas, conexiones):
-    for capa in capas:
-        for nodo in capa:
-            nodo.set_stroke(color=SECUNDARIO, width=2.5, opacity=1.0)
-            nodo.set_fill(FONDO, opacity=1.0)
-    for grupo in conexiones:
-        grupo.set_stroke(color=SECUNDARIO, width=1.5, opacity=0.4)
-
-
-def _ficha(expresion):
-    formula = MathTex(expresion, color=MORADO).scale(0.55)
-    caja = RoundedRectangle(
-        width=formula.width + 0.26, height=formula.height + 0.2,
-        corner_radius=0.09, stroke_color=MORADO, stroke_width=2,
-    ).set_fill(FONDO, opacity=1.0)
-    return VGroup(caja, formula.move_to(caja.get_center()))
-
-
-def _llevar(scene, fichas, destinos, cables=(), run_time=0.75):
-    scene.play(
-        *[f.animate.move_to(d) for f, d in zip(fichas, destinos)],
-        *[c.animate.set_color(MORADO) for c in cables],
-        run_time=run_time,
-    )
-
-
-def _convertir(ficha, expresion):
-    return Transform(ficha, _ficha(expresion).move_to(ficha.get_center()))
-
-
-def _pulso(nodo, color, ancho=4.0):
-    return nodo.animate(rate_func=there_and_back).set_stroke(
-        color=color, width=ancho,
-    )
-
-
-def _pasada(scene, capas, conexiones, color, run_time=0.45):
-    scene.play(
-        LaggedStart(*[_pulso(n, color) for n in capas[0]], lag_ratio=0.08),
-        run_time=0.5,
-    )
-    for grupo, destino in zip(conexiones, capas[1:]):
-        pulsos = [Dot(color=color, radius=0.06).move_to(c.get_start())
-                  for c in grupo]
-        scene.add(*pulsos)
-        scene.play(
-            *[MoveAlongPath(p, c) for p, c in zip(pulsos, grupo)],
-            grupo.animate(rate_func=there_and_back).set_stroke(
-                color=color, opacity=0.9, width=2.2,
-            ),
-            run_time=run_time,
-        )
-        scene.play(
-            *[FadeOut(p, scale=0.4) for p in pulsos],
-            LaggedStart(*[_pulso(n, color) for n in destino], lag_ratio=0.06),
-            run_time=0.35,
-        )
-        scene.remove(*pulsos)
-
-
-def _neurona():
-    ys = ALTURAS_NEURONA
-
-    entradas = VGroup(*[
-        MathTex(f"x_{i + 1}", color=CLARO).scale(0.75).move_to(
-            [X_ENTRADA, y, 0],
-        )
-        for i, y in enumerate(ys)
-    ])
-    perillas = VGroup(*[
-        _perilla(f"w_{i + 1}").move_to([X_PERILLA, y - 0.62, 0])
-        for i, y in enumerate(ys)
-    ])
-    multiplicadores = VGroup(*[
-        VGroup(
-            Circle(radius=0.24, color=SECUNDARIO, stroke_width=2.5)
-            .set_fill(FONDO, opacity=1.0),
-            MathTex(r"\times", color=SECUNDARIO).scale(0.7),
-        ).move_to([X_MULT, y, 0])
-        for y in ys
-    ])
-    suma = VGroup(
-        Circle(radius=0.28, color=SECUNDARIO, stroke_width=2.5)
-        .set_fill(FONDO, opacity=1.0),
-        MathTex("+", color=SECUNDARIO).scale(0.8),
-    ).move_to([X_SUMA, Y_NEURONA, 0])
-    sesgo = _colgar(_perilla("b", lado=LEFT), suma, buff=1.35)
-
-    relu = _caja(r"\mathrm{ReLU}", PRIMARIO, ancho=1.5, escala=0.55)
-    relu.move_to([X_RELU, Y_NEURONA, 0])
-    perdida = _caja("L", ROJO, ancho=0.95, escala=0.85)
-    perdida.move_to([X_PERDIDA, Y_NEURONA, 0])
-
-    cables_entrada = VGroup(*[
-        Line([X_ENTRADA + 0.22, y, 0], [X_MULT - 0.24, y, 0],
-             color=SECUNDARIO, stroke_width=2).set_stroke(opacity=0.7)
-        for y in ys
-    ])
-    cables_peso = VGroup(*[
-        Line(perillas[i][0].get_top(), [X_MULT - 0.17, y - 0.17, 0],
-             color=AMBAR, stroke_width=2).set_stroke(opacity=0.7)
-        for i, y in enumerate(ys)
-    ])
-    cables_suma = VGroup(*[
-        Line([X_MULT + 0.24, y, 0], suma[0].get_center(),
-             color=SECUNDARIO, stroke_width=2).set_stroke(opacity=0.7)
-        for y in ys
-    ])
-    cable_sesgo = Line(
-        sesgo[0].get_top(), suma[0].get_bottom(),
-        color=AMBAR, stroke_width=2,
-    ).set_stroke(opacity=0.7)
-    flecha_z = Arrow(suma[0].get_right(), relu.get_left(), color=SECUNDARIO,
-                     stroke_width=3, buff=0.12, tip_length=0.18)
-    flecha_a = Arrow(relu.get_right(), perdida.get_left(), color=SECUNDARIO,
-                     stroke_width=3, buff=0.12, tip_length=0.18)
-    VGroup(flecha_z, flecha_a).set_stroke(opacity=0.85)
-
-    etiquetas = VGroup(
-        *[MathTex(f"p_{i + 1}", color=SECUNDARIO).scale(0.55).next_to(
-            multiplicadores[i], UP, buff=0.12,
-        ) for i in range(3)],
-        MathTex("z", color=SECUNDARIO).scale(0.6).next_to(
-            flecha_z, UP, buff=0.1),
-        MathTex("a", color=SECUNDARIO).scale(0.6).next_to(
-            flecha_a, UP, buff=0.1),
-    )
-
-    resto = VGroup(
-        cables_entrada, cables_peso, cables_suma, cable_sesgo,
-        flecha_z, flecha_a, entradas, multiplicadores, relu, perdida,
-        perillas, sesgo, etiquetas,
-    )
-    tramos = (flecha_a, flecha_z, cables_suma, cables_peso, cable_sesgo)
-    return suma, resto, perillas, sesgo, tramos
 
 
 def construir(scene):
@@ -364,51 +110,23 @@ def construir(scene):
         _numerito(n, cadena[2 * n]) for n in (1, 2, 3, 4)
     ])
 
-    capas, conexiones = _red()
+    capas, conexiones = _backprop.red()
     red = VGroup(*conexiones, *capas)
-    centro_red = np.array([0.0, Y_RED, 0.0])
+    centro_red = np.array([0.0, _backprop.Y_RED, 0.0])
     red.shift(RIGHT * CENTRADO).scale(AMPLIACION, about_point=centro_red)
 
-    elegida = conexiones[0][ARISTA_ELEGIDA]
+    elegida = conexiones[0][_backprop.ARISTA_ELEGIDA]
     rot_elegida = MathTex("w", color=AMBAR).scale(0.7)
     rot_elegida.next_to(elegida.get_center(), UP + LEFT, buff=0.08)
-    destino = ARISTA_ELEGIDA % len(capas[1])
+    destino = _backprop.ARISTA_ELEGIDA % len(capas[1])
     abanico = [
         VGroup(*conexiones[1][destino * len(capas[2]):
                              (destino + 1) * len(capas[2])]),
         conexiones[2],
     ]
-    tubo = _tubo()
+    tubo = _backprop.tubo()
     rotulo_termo = texto("error", 19, color=ROJO).next_to(tubo, UP, buff=0.22)
-    nivel_alto = _liquido(LLENO)
-
-    nucleo, resto_neurona, perillas, sesgo, tramos = _neurona()
-    flecha_a, flecha_z, cables_suma, cables_peso, cable_sesgo = tramos
-    piezas_neurona = VGroup(nucleo, resto_neurona)
-
-    gradientes = VGroup(*[
-        MathTex(r"-\nabla w", color=MORADO).scale(0.75).move_to([
-            (_x_capa(i) + _x_capa(i + 1)) / 2, Y_ROTULO_GRADIENTE, 0,
-        ])
-        for i in range(len(CAPAS_RED) - 1)
-    ])
-
-    reuso = MathTex(
-        r"\frac{\partial L}{\partial w_i}", "=",
-        r"\frac{\partial L}{\partial z}", r"\cdot", "x_i",
-    ).scale(0.9).move_to([0, -2.9, 0])
-    reuso[0].set_color(AMBAR)
-    reuso[2].set_color(MORADO)
-    reuso[4].set_color(CLARO)
-
-    parada_salida = np.array([(X_RELU + X_PERDIDA) / 2, Y_NEURONA, 0])
-    parada_activa = np.array([(X_SUMA + X_RELU) / 2, Y_NEURONA, 0])
-    parada_suma = np.array([X_SUMA - 0.62, Y_NEURONA, 0])
-    paradas_mult = [np.array([X_MULT + 0.85, y, 0]) for y in ALTURAS_NEURONA]
-    etiqueta_relu = MathTex(
-        r"\cdot\ \frac{\partial a}{\partial z}", color=PRIMARIO,
-    ).scale(0.6).move_to([X_RELU, Y_NEURONA + 0.95, 0])
-    nodo_zoom = capas[1][ARISTA_ELEGIDA % len(capas[1])]
+    nivel_alto = _backprop.liquido(_backprop.LLENO)
 
     scene.play(FadeIn(encabezado, shift=DOWN * 0.2), run_time=0.6)
     scene.play(FadeIn(compuesta), run_time=0.8)
@@ -454,103 +172,8 @@ def construir(scene):
         run_time=0.9,
     )
     scene.play(Create(tubo), FadeIn(rotulo_termo), run_time=0.9)
-    _pasada(scene, capas, conexiones, VERDE, run_time=0.42)
-    nivel = _liquido(0.02)
+    _backprop.pasada(scene, capas, conexiones, VERDE, run_time=0.42)
+    nivel = _backprop.liquido(0.02)
     scene.add(nivel)
     scene.play(Transform(nivel, nivel_alto), run_time=0.8)
-    scene.next_slide()
-
-    scene.play(nodo_zoom.animate.set_stroke(color=AMBAR, width=4.5),
-               run_time=0.5)
-    scene.play(nodo_zoom.animate(rate_func=there_and_back).scale(1.35),
-               run_time=0.6)
-    foco = nodo_zoom.get_center()
-    scene.play(
-        red.animate.scale(ZOOM, about_point=foco).set_opacity(0),
-        FadeOut(tubo), FadeOut(rotulo_termo), FadeOut(nivel),
-        run_time=1.2,
-    )
-    scene.remove(red)
-    scene.play(FadeIn(nucleo), FadeIn(resto_neurona), run_time=0.9)
-    scene.next_slide()
-
-    ficha = _ficha(r"\frac{\partial L}{\partial a}").move_to(parada_salida)
-    scene.play(FadeIn(ficha, scale=0.6), run_time=0.6)
-    _llevar(scene, [ficha], [parada_activa], [flecha_a])
-    scene.play(FadeIn(etiqueta_relu, shift=DOWN * 0.1), run_time=0.4)
-    scene.play(_convertir(ficha, r"\frac{\partial L}{\partial z}"),
-               run_time=0.7)
-    _llevar(scene, [ficha], [parada_suma], [flecha_z])
-    scene.next_slide()
-
-    ramas = [ficha.copy() for _ in ALTURAS_NEURONA]
-    rama_sesgo = ficha.copy()
-    scene.add(*ramas, rama_sesgo)
-    scene.remove(ficha)
-    _llevar(
-        scene, ramas + [rama_sesgo],
-        paradas_mult + [sesgo[0].get_center() + UP * 0.8],
-        list(cables_suma) + [cable_sesgo], run_time=0.9,
-    )
-    scene.play(FadeIn(reuso, shift=UP * 0.12), run_time=0.7)
-
-    scene.play(
-        LaggedStart(*[
-            _convertir(r, rf"\frac{{\partial L}}{{\partial w_{i + 1}}}")
-            for i, r in enumerate(ramas)
-        ], lag_ratio=0.18),
-        _convertir(rama_sesgo, r"\frac{\partial L}{\partial b}"),
-        run_time=1.0,
-    )
-    scene.next_slide()
-
-    _llevar(
-        scene, ramas + [rama_sesgo],
-        [p[0].get_center() for p in perillas] + [sesgo[0].get_center()],
-        list(cables_peso), run_time=0.8,
-    )
-    scene.play(
-        LaggedStart(*[FadeOut(r, scale=0.3) for r in ramas + [rama_sesgo]],
-                    lag_ratio=0.12),
-        LaggedStart(*[_girar(p) for p in perillas], lag_ratio=0.12),
-        _girar(sesgo),
-        run_time=1.0,
-    )
-    scene.next_slide()
-
-    scene.play(FadeOut(piezas_neurona), FadeOut(reuso),
-               FadeOut(etiqueta_relu), run_time=0.7)
-    red.scale(1 / ZOOM, about_point=foco)
-    _restaurar_red(capas, conexiones)
-    scene.play(FadeIn(red), FadeIn(tubo), FadeIn(rotulo_termo),
-               FadeIn(nivel), run_time=0.7)
-    anterior = None
-    for i in range(len(conexiones) - 1, -1, -1):
-        grupo = conexiones[i]
-        pulsos = [Dot(color=MORADO, radius=0.06).move_to(c.get_end())
-                  for c in grupo]
-        caminos = [Line(c.get_end(), c.get_start()) for c in grupo]
-        scene.add(*pulsos)
-        scene.play(
-            *[MoveAlongPath(p, c) for p, c in zip(pulsos, caminos)],
-            *([FadeOut(anterior, shift=DOWN * 0.3)] if anterior else []),
-            run_time=0.6,
-        )
-        scene.play(
-            *[p.animate.set_opacity(0) for p in pulsos],
-            LaggedStart(*[_pulso(n, MORADO) for n in capas[i]],
-                        lag_ratio=0.07),
-            grupo.animate.set_stroke(color=AMBAR, opacity=0.8, width=1.8),
-            FadeIn(gradientes[i], shift=DOWN * 0.3),
-            run_time=0.6,
-        )
-        scene.remove(*pulsos)
-        anterior = gradientes[i]
-    scene.play(FadeOut(anterior, shift=DOWN * 0.3), run_time=0.45)
-    scene.next_slide()
-
-    _pasada(scene, capas, conexiones, VERDE, run_time=0.42)
-    scene.play(Transform(nivel, _liquido(TRAS_EL_PASO)), run_time=1.0)
-    scene.wait(0.4)
-
     scene.next_slide()

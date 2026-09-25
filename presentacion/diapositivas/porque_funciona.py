@@ -9,6 +9,7 @@ from manim import (
     Create,
     Dot,
     FadeIn,
+    FadeOut,
     LaggedStart,
     Line,
     ManimColor,
@@ -20,7 +21,7 @@ from manim import (
     interpolate_color,
 )
 
-from componentes import separador, texto
+from componentes import enmarcar, imagen, separador, texto
 from componentes import titulo as hacer_titulo
 from estilo import AMBAR, FONDO, MORADO, PRIMARIO, SECUNDARIO, VERDE
 
@@ -43,6 +44,12 @@ PASOS = (
 CENTRO_GRAFICA = [3.5, 0.05, 0]
 N_BANDAS = 8
 MUESTRAS = 144
+
+ANCHO_TEOREMA = 12.4
+Y_TEOREMA = 0.45
+ALTO_ASUSTADO = 2.3
+SOLAPE_ASUSTADO = 0.4
+MARGEN_ASUSTADO = 0.5
 
 
 def _objetivo(x):
@@ -208,5 +215,26 @@ def construir(scene):
 
     scene.play(FadeIn(remate, shift=UP * 0.12), run_time=0.9)
     scene.wait(0.5)
+
+    scene.next_slide()
+
+    teorema = imagen("teorema_aproximacion_universal")
+    teorema.scale_to_fit_width(ANCHO_TEOREMA).move_to([0, Y_TEOREMA, 0])
+    marco_teorema = enmarcar(teorema, margen=0.16)
+    diagrama = VGroup(
+        entrada, salida, *neuronas, *cables, ejes, marcas, rot_x, rot_y,
+        objetivo, datos, ajuste, contador, remate,
+    )
+    scene.play(FadeOut(diagrama), run_time=0.8)
+    scene.play(FadeIn(teorema), Create(marco_teorema), run_time=0.7)
+    scene.wait(0.3)
+
+    scene.next_slide()
+
+    asustado = imagen("asustado").scale_to_fit_height(ALTO_ASUSTADO)
+    asustado.next_to(marco_teorema, DOWN, buff=-SOLAPE_ASUSTADO)
+    asustado.align_to(marco_teorema, RIGHT).shift(LEFT * MARGEN_ASUSTADO)
+    scene.play(FadeIn(asustado, scale=0.5, shift=UP * 0.3), run_time=0.6)
+    scene.wait(0.3)
 
     scene.next_slide()

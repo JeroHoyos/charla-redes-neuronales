@@ -10,6 +10,7 @@ from manim import (
     Dot,
     FadeIn,
     FadeOut,
+    FadeTransform,
     GrowFromCenter,
     Indicate,
     LaggedStart,
@@ -17,7 +18,7 @@ from manim import (
     MathTex,
     MoveAlongPath,
     ReplacementTransform,
-    TransformFromCopy,
+    RoundedRectangle,
     VGroup,
     linear,
 )
@@ -37,13 +38,10 @@ Y_FORMULA = -2.7
 
 FILAS = ((1.7, "x_1", "w_1"), (0.4, "x_2", "w_2"), (-0.9, "x_n", "w_n"))
 
-X_CAPAS = (-1.4, 1.5, 4.3)
-TAMANOS_CAPAS = (4, 4, 2)
-COLORES_CAPAS = (PRIMARIO, PRIMARIO, AMBAR)
-PASO_RED = 1.15
-RADIO_RED = 0.34
-Y_NOMBRES = -2.15
-Y_COMPOSICION = -3.15
+EJEMPLO_X = (2, 1, 3)
+EJEMPLO_W = (3, -2, 1)
+EJEMPLO_B = 1
+POS_ROTULO_EJEMPLO = [-5.55, 2.5, 0]
 
 
 def _m(tex, color, escala=0.6):
@@ -55,30 +53,8 @@ def _nodo(centro, radio, color):
     return nodo.set_fill(FONDO, opacity=1.0).move_to(centro)
 
 
-def _conexion(origen, destino):
-    direccion = destino - origen
-    direccion = direccion / np.linalg.norm(direccion)
-    linea = Line(
-        origen + direccion * RADIO_NODO, destino - direccion * RADIO_RED,
-        color=SECUNDARIO, stroke_width=1.6,
-    )
-    return linea.set_stroke(opacity=0.45)
-
-
-def _rotulo_biologico(nombre, color, x, ancla):
-    etiqueta = texto(nombre, 19, color=color)
-    etiqueta.move_to([x, Y_ROTULOS, 0])
-    guia = DashedLine(
-        etiqueta.get_top() + UP * 0.1, ancla,
-        color=color, stroke_width=2, stroke_opacity=0.45, dash_length=0.09,
-    )
-    return etiqueta, guia
-
-
-def construir(scene):
-    encabezado = hacer_titulo("El perceptrón")
+def _entradas():
     centro = np.array([X_CUERPO, Y_EJE, 0.0])
-
     nodos, etiquetas_x, aristas, pesos = [], [], [], []
     for y, nombre_x, nombre_w in FILAS:
         nodo = _nodo([X_ENTRADAS, y, 0], RADIO_NODO, VERDE)
@@ -98,10 +74,53 @@ def construir(scene):
         ))
     puntos_suspensivos = _m(r"\vdots", SECUNDARIO, 0.6)
     puntos_suspensivos.move_to([X_ENTRADAS, -0.28, 0])
+    return nodos, etiquetas_x, aristas, pesos, puntos_suspensivos
 
+
+def _cuerpo():
+    centro = np.array([X_CUERPO, Y_EJE, 0.0])
     cuerpo = _nodo(centro, RADIO_CUERPO, PRIMARIO)
     cuerpo.set_stroke(width=4.5)
     sigma = _m(r"\Sigma", CLARO, 1.1).move_to(centro)
+    return cuerpo, sigma
+
+
+def _factor(valor):
+    return f"({valor})" if valor < 0 else f"{valor}"
+
+
+def _suma(valores):
+    cuenta = f"{valores[0]}"
+    for valor in valores[1:]:
+        cuenta += f" - {-valor}" if valor < 0 else f" + {valor}"
+    return cuenta
+
+
+def _rotulo_ejemplo():
+    nombre = texto("ejemplo", 17, color=SECUNDARIO)
+    borde = RoundedRectangle(
+        width=nombre.width + 0.4, height=nombre.height + 0.24,
+        corner_radius=0.12, stroke_color=SECUNDARIO, stroke_width=2,
+    )
+    return VGroup(borde, nombre).move_to(POS_ROTULO_EJEMPLO)
+
+
+def _rotulo_biologico(nombre, color, x, ancla):
+    etiqueta = texto(nombre, 19, color=color)
+    etiqueta.move_to([x, Y_ROTULOS, 0])
+    guia = DashedLine(
+        etiqueta.get_top() + UP * 0.1, ancla,
+        color=color, stroke_width=2, stroke_opacity=0.45, dash_length=0.09,
+    )
+    return etiqueta, guia
+
+
+def construir(scene):
+    encabezado = hacer_titulo("El perceptrón")
+    centro = np.array([X_CUERPO, Y_EJE, 0.0])
+
+    nodos, etiquetas_x, aristas, pesos, puntos_suspensivos = _entradas()
+    cuerpo, sigma = _cuerpo()
 
     centro_bias = np.array([X_CUERPO, 2.15, 0.0])
     nodo_bias = _nodo(centro_bias, 0.28, MORADO)
@@ -234,96 +253,106 @@ def construir(scene):
     scene.wait(0.4)
     scene.next_slide()
 
-    capas = [[n.get_center() for n in nodos]]
-    nodos_red = []
-    for x, cantidad, color in zip(X_CAPAS, TAMANOS_CAPAS, COLORES_CAPAS):
-        centros = [
-            np.array([x, Y_EJE + (cantidad - 1) / 2 * PASO_RED - k * PASO_RED, 0.0])
-            for k in range(cantidad)
-        ]
-        capas.append(centros)
-        nodos_red.append([_nodo(c, RADIO_RED, color) for c in centros])
-
-    tramos = []
-    for izquierda, derecha in zip(capas, capas[1:]):
-        tramos.append(VGroup(*[
-            _conexion(origen, destino) for origen in izquierda for destino in derecha
-        ]))
-
-    sobrantes = VGroup(
-        compacta, rot_dendritas, rot_soma, rot_axon,
-        guia_dendritas, guia_soma, guia_axon,
-        *pesos, puntos_suspensivos, *aristas,
-        nodo_bias, etiqueta_bias, arista_bias,
-        flecha, salida, etiqueta_salida,
+    _ejemplo(
+        scene, nodos, etiquetas_x, aristas, pesos, cuerpo, etiqueta_bias,
+        arista_bias, flecha, salida, etiqueta_salida, compacta,
+        VGroup(
+            rot_dendritas, rot_soma, rot_axon,
+            guia_dendritas, guia_soma, guia_axon, puntos_suspensivos,
+        ),
     )
-    scene.play(FadeOut(sobrantes), run_time=0.7)
+
+
+def _ejemplo(scene, nodos, etiquetas_x, aristas, pesos, cuerpo, etiqueta_bias,
+             arista_bias, flecha, salida, etiqueta_salida, compacta, sobrantes):
+    productos = [x * w for x, w in zip(EJEMPLO_X, EJEMPLO_W)]
+    resultado = sum(productos) + EJEMPLO_B
+
+    numeros_x = [
+        _m(f"{x}", CLARO, 0.6).move_to(nodo.get_center())
+        for nodo, x in zip(nodos, EJEMPLO_X)
+    ]
+    numeros_w = [
+        _m(f"{w}", VERDE, 0.55).move_to(peso.get_center())
+        for peso, w in zip(pesos, EJEMPLO_W)
+    ]
+    numero_b = _m(f"{EJEMPLO_B}", MORADO, 0.55)
+    numero_b.move_to(etiqueta_bias.get_center())
+    numero_salida = _m(f"{resultado}", AMBAR, 0.62)
+    numero_salida.move_to(salida.get_center())
+
+    partes, trozos = [r"\hat{y}", "="], []
+    for k, (x, w) in enumerate(zip(EJEMPLO_X, EJEMPLO_W)):
+        inicio = len(partes)
+        partes += (["+"] if k else []) + [f"{x}", r"\cdot", _factor(w)]
+        trozos.append(range(inicio, len(partes)))
+    sesgo = range(len(partes), len(partes) + 2)
+    partes += ["+", _factor(EJEMPLO_B)]
+    sumandos = range(len(partes), len(partes) + 2)
+    partes += ["=", _suma([*productos, EJEMPLO_B])]
+    total = range(len(partes), len(partes) + 2)
+    partes += ["=", f"{resultado}"]
+
+    cuenta = MathTex(*partes).scale(0.85).move_to([0, Y_FORMULA, 0])
+    cuenta[0].set_color(AMBAR)
+    for trozo in trozos:
+        cuenta[trozo[-1]].set_color(VERDE)
+    cuenta[sesgo[-1]].set_color(MORADO)
+    cuenta[total[-1]].set_color(AMBAR)
+
+    def tramo(indices):
+        return VGroup(*[cuenta[i] for i in indices])
 
     scene.play(
-        ReplacementTransform(cuerpo, nodos_red[0][0]),
-        FadeOut(sigma, scale=0.3),
-        run_time=0.9,
-    )
-    resto = [nodo for capa in nodos_red for nodo in capa][1:]
-    scene.play(
-        LaggedStart(*[FadeIn(p, scale=0.4) for p in resto], lag_ratio=0.07),
-        run_time=1.3,
+        FadeOut(sobrantes),
+        FadeIn(_rotulo_ejemplo(), shift=RIGHT * 0.15),
+        run_time=0.7,
     )
     scene.play(
-        LaggedStart(*[Create(c) for tramo in tramos for c in tramo],
-                    lag_ratio=0.01),
-        run_time=1.4,
+        *[FadeTransform(e, n) for e, n in zip(etiquetas_x, numeros_x)],
+        *[FadeTransform(p, n) for p, n in zip(pesos, numeros_w)],
+        FadeTransform(etiqueta_bias, numero_b),
+        run_time=1.0,
     )
     scene.next_slide()
 
-    for tramo, capa in zip(tramos, nodos_red):
-        pulsos = [
-            Dot(color=VERDE, radius=0.06).move_to(c.get_start()) for c in tramo
-        ]
-        scene.add(*pulsos)
+    scene.play(FadeOut(compacta), FadeIn(tramo(range(2))), run_time=0.5)
+    for arista, peso, trozo in zip(aristas, numeros_w, trozos):
+        pulso = Dot(color=VERDE, radius=0.07).move_to(arista.get_start())
+        scene.add(pulso)
         scene.play(
-            *[MoveAlongPath(p, c) for p, c in zip(pulsos, tramo)],
-            run_time=0.6, rate_func=linear,
+            Indicate(peso, color=VERDE, scale_factor=1.35),
+            MoveAlongPath(pulso, arista), run_time=0.55, rate_func=linear,
         )
         scene.play(
-            Indicate(VGroup(*capa), color=CLARO, scale_factor=1.1),
-            *[FadeOut(p, scale=0.2) for p in pulsos],
-            run_time=0.4,
+            Indicate(cuerpo, color=PRIMARIO, scale_factor=1.06),
+            FadeOut(pulso, scale=0.2),
+            FadeIn(tramo(trozo), shift=UP * 0.12),
+            run_time=0.5,
         )
+
+    pulso_bias = Dot(color=MORADO, radius=0.07).move_to(arista_bias.get_start())
+    scene.add(pulso_bias)
+    scene.play(MoveAlongPath(pulso_bias, arista_bias), run_time=0.45,
+               rate_func=linear)
+    scene.play(
+        Indicate(cuerpo, color=PRIMARIO, scale_factor=1.06),
+        FadeOut(pulso_bias, scale=0.2),
+        FadeIn(tramo(sesgo), shift=UP * 0.12),
+        run_time=0.5,
+    )
+    scene.play(FadeIn(tramo(sumandos), shift=RIGHT * 0.12), run_time=0.5)
+    scene.play(FadeIn(tramo(total), shift=RIGHT * 0.12), run_time=0.5)
+
+    pulso_salida = Dot(color=AMBAR, radius=0.07).move_to(flecha.get_start())
+    scene.add(pulso_salida)
+    scene.play(MoveAlongPath(pulso_salida, flecha), run_time=0.5,
+               rate_func=linear)
+    scene.play(
+        FadeOut(pulso_salida, scale=0.2),
+        FadeTransform(etiqueta_salida, numero_salida),
+        Indicate(salida, color=AMBAR),
+        run_time=0.6,
+    )
     scene.wait(0.4)
-    scene.next_slide()
-
-    nombres = VGroup(*[
-        _m(nombre, color, 0.75).move_to([x, Y_NOMBRES, 0])
-        for nombre, color, x in zip(("f_1", "f_2", "f_3"), COLORES_CAPAS, X_CAPAS)
-    ])
-    scene.play(
-        LaggedStart(*[FadeIn(n, shift=UP * 0.15) for n in nombres],
-                    lag_ratio=0.25),
-        run_time=0.9,
-    )
-    scene.next_slide()
-
-    composicion = MathTex(
-        r"\hat{y}", "=", "f_3", r"\big(", "f_2", r"\big(", "f_1", "(", "x",
-        ")", r"\big)", r"\big)",
-    ).scale(0.95).move_to([0, Y_COMPOSICION, 0])
-    composicion[0].set_color(AMBAR)
-    composicion[2].set_color(AMBAR)
-    composicion[4].set_color(PRIMARIO)
-    composicion[6].set_color(PRIMARIO)
-    composicion[8].set_color(VERDE)
-
-    scene.play(FadeIn(VGroup(composicion[0], composicion[1])), run_time=0.4)
-    for capa, funcion, abre, cierra in ((2, 2, 3, 11), (1, 4, 5, 10), (0, 6, 7, 9)):
-        scene.play(
-            TransformFromCopy(nombres[capa], composicion[funcion]),
-            FadeIn(VGroup(composicion[abre], composicion[cierra])),
-            run_time=0.6,
-        )
-    scene.play(
-        TransformFromCopy(VGroup(*etiquetas_x), composicion[8]), run_time=0.6,
-    )
-    scene.wait(0.4)
-
     scene.next_slide()

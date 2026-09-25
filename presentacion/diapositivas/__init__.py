@@ -5,13 +5,18 @@ from componentes import logo_esquina, red_decorativa
 from . import (
     activaciones_validas,
     ajuste_curva,
+    backprop_ejemplo,
+    backprop_neurona,
     backpropagation,
     bajar_el_valle,
     cierre,
     como_aprendemos,
     contenido,
+    convexidad,
     curvas_perdida,
     decidir,
+    diferenciable,
+    entropia_cruzada,
     funcion_error,
     falta_algo,
     frameworks,
@@ -19,14 +24,19 @@ from . import (
     idea_vieja,
     la_recta,
     neurona_biologica,
+    perdida_clasificacion,
+    perdida_regresion,
     perceptron,
     porque_funciona,
     porque_importan,
     potencial_accion,
     portada,
+    pregunta_error,
     pronto_iniciamos,
+    red_neuronal,
     siguientes_pasos,
     softmax,
+    tabla_perdidas,
 )
 
 
@@ -81,6 +91,7 @@ class SlidesCuerpo:
     slide_idea_vieja = _slide(idea_vieja.construir)
     slide_neurona_biologica = _slide(neurona_biologica.construir)
     slide_perceptron = _slide(perceptron.construir)
+    slide_red_neuronal = _slide(red_neuronal.construir)
     slide_la_recta = _slide(la_recta.construir)
     slide_falta_algo = _slide(falta_algo.construir)
     slide_potencial_accion = _slide(potencial_accion.construir)
@@ -91,8 +102,17 @@ class SlidesCuerpo:
     slide_decidir = _slide(decidir.construir)
     slide_softmax = _slide(softmax.construir)
     slide_funcion_error = _slide(funcion_error.construir)
+    slide_pregunta_error = _slide(pregunta_error.construir)
+    slide_convexidad = _slide(convexidad.construir)
+    slide_diferenciable = _slide(diferenciable.construir)
+    slide_perdida_regresion = _slide(perdida_regresion.construir)
+    slide_perdida_clasificacion = _slide(perdida_clasificacion.construir)
+    slide_entropia_cruzada = _slide(entropia_cruzada.construir)
+    slide_tabla_perdidas = _slide(tabla_perdidas.construir)
     slide_bajar_el_valle = _slide(bajar_el_valle.construir)
     slide_backpropagation = _slide(backpropagation.construir)
+    slide_backprop_ejemplo = _slide(backprop_ejemplo.construir)
+    slide_backprop_neurona = _slide(backprop_neurona.construir)
     slide_curvas_perdida = _slide(curvas_perdida.construir)
     slide_contenido = _slide(contenido.construir)
 
